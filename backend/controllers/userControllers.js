@@ -19,10 +19,21 @@ const TEMP_USERS = {}; // Use Redis or a database for better scalability
 export const registerWithOtp = TryCatch(async (req, res) => {
   const { name, email, password } = req.body;
 
-   
-   if (Array.isArray(email) || !validator.isEmail(email)) {
+  if (!email || typeof email !== 'string') {
     return res.status(400).json({
-      message: "Invalid email format",
+        message: "Invalid email format.",
+    });
+  }
+
+  if (email.includes(',') || email.includes(';') || email.includes('{') || email.includes('}') || email.includes('[') || email.includes(']') || email.includes('"') || email.includes("'")) {
+    return res.status(400).json({
+        message: "Invalid email format.",
+    });
+  }
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({
+          message: "Invalid email format.",
     });
   }
 
@@ -150,14 +161,26 @@ export const loginUser=TryCatch(async(req,res)=>{
 
 export const forgetPassword=TryCatch(async(req,res)=>{
     const {email} =req.body;
+ 
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+          message: "Invalid email format.",
+      });
+    }
 
-     
-  if (Array.isArray(email) || !validator.isEmail(email)) {
-    return res.status(400).json({
-      message: "Invalid email format",
-    });
-  }
-    const user= await User.findOne({email})
+    if (email.includes(',') || email.includes(';') || email.includes('{') || email.includes('}') || email.includes('[') || email.includes(']') || email.includes('"') || email.includes("'")) {
+      return res.status(400).json({
+          message: "Invalid email format.",
+      });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({
+            message: "Invalid email format.",
+      });
+    }
+
+    const user = await User.findOne({email})
     if(!user)
         return res.status(400).json({
             message:"No user found",
