@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PinData } from "../context/PinContext";
 import PinCard from "../components/PinCard";
-import toast from "react-hot-toast";
+import {toast} from "react-toastify";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "../context/UserContext";
@@ -9,7 +9,7 @@ import { LogOut, UserCircle, Grid, Loader, Heart } from "lucide-react";
 
 const Account = ({ user }) => {
   const navigate = useNavigate();
-  const { setIsAuth, setUser, fetchUser } = UserData();
+  const { setIsAuth, setUser, fetchUser,isAuth } = UserData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { pins, loading } = PinData();
   const [likedPins, setLikedPins] = useState([]);
@@ -20,15 +20,24 @@ const Account = ({ user }) => {
       setIsLoggingOut(true);
       const { data } = await axios.get("/api/user/logout");
       toast.success(data.message);
-      navigate("/login");
       setIsAuth(false);
       setUser([]);
+      navigate("/login");
+    
+      
     } catch (error) {
       toast.error(error?.response?.data?.message || "Logout failed");
     } finally {
       setIsLoggingOut(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuth) {
+      navigate("/login");
+    }
+  }, []);
+
 
   const userPins = pins && user && user._id ? pins.filter((pin) => pin.owner === user._id) : [];
 

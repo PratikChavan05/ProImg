@@ -22,7 +22,7 @@ const Register = () => {
     const { fetchPins } = PinData()
     
     const googleLogin = () => {
-        window.location.href = "http://localhost:5000/api/user/auth/google"
+        window.location.href = "https://proimg.onrender.com/api/user/auth/google"
     }
     
     const handleChange = (e) => {

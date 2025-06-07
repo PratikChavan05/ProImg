@@ -165,6 +165,38 @@ export const deleteComment = TryCatch(async (req, res) => {
   });
   
 
+  export const countViews = TryCatch(async (req, res) => {
+    const {pinId,userId}=req.body;
+    
+    const pin =await Pin.findById(pinId);
+    if(!pin)
+      return res.status(400).json({
+        message:"No pin with this id",
+      })
+    const isViewed = pin.views.includes(userId);
+    if(isViewed)
+      return res.status(400).json({
+        message:"Already viewed",
+      })
+    pin.views.push(userId);
+    await pin.save();
+    res.json({
+      message:"Pin viewed",
+    })
+  })
+
+  export const getViews = TryCatch(async (req, res) => {
+
+    const pin = await Pin.findById(req.params.id).populate("views", "name");
+  
+    if (!pin) {
+      return res.status(400).json({ message: "No pin with this id" });
+    }
+  
+    res.json(pin.views);
+  }
+  );
+
   export const getLikes = TryCatch(async (req, res) => {
     const pin = await Pin.findById(req.params.id).populate("likes", "name");
   

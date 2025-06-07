@@ -1,7 +1,6 @@
 import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
-import toast  from 'react-hot-toast';
-
+import { toast } from "react-toastify";
 const UserContext = createContext(); // Create a context
 
 export const UserProvider = ({ children }) => {
