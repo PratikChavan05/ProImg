@@ -15,9 +15,14 @@ const schema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    image: {
+    media: {
       id: String,
       url: String,
+      type: {
+        type: String,
+        enum: ["image", "video"],
+        required: true,
+      },
     },
     comments: [
       {
@@ -37,18 +42,16 @@ const schema = new mongoose.Schema(
     ],
     likes: [
       {
-      
-           type: mongoose.Schema.Types.ObjectId, ref: "User", required: true 
-
-        
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
       },
     ],
     views: [
       {
-      
-           type: mongoose.Schema.Types.ObjectId, ref: "User", required: true 
-
-        
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
       },
     ],
   },

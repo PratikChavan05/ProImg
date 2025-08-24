@@ -19,7 +19,7 @@ import Conversations from "./pages/Conversation";
 
 const App = () => {
   const { loading, isAuth, user} = UserData(); 
-  console.log(isAuth);
+  // console.log(isAuth);
   return (
     <>
       {loading ? (

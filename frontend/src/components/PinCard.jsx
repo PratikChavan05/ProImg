@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Download, Heart, Eye } from "lucide-react";
+import { Download, Heart, Eye, Video as VideoIcon, ImageIcon, PlayCircle } from "lucide-react";
 
 const PinCard = ({ pin }) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -10,8 +10,8 @@ const PinCard = ({ pin }) => {
   // Safe guard against missing data
   if (!pin) return null;
 
-  // Handle image load
-  const handleImageLoad = () => {
+  // Handle media load
+  const handleMediaLoad = () => {
     setIsLoaded(true);
   };
 
@@ -21,16 +21,20 @@ const PinCard = ({ pin }) => {
 
   const handleDownload = (e) => {
     e.stopPropagation();
-    if (pin.image?.url) {
-      fetch(pin.image.url)
+    if (pin.media?.url) {
+      const filename = pin.title
+        ? `${pin.title.replace(/\s+/g, "_")}.${
+            pin.media.type === "image" ? "jpg" : "mp4"
+          }`
+        : `download.${pin.media.type === "image" ? "jpg" : "mp4"}`;
+
+      fetch(pin.media.url)
         .then((response) => response.blob())
         .then((blob) => {
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = pin.title
-            ? `${pin.title.replace(/\s+/g, "_")}.jpg`
-            : "download.jpg";
+          link.download = filename;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -41,13 +45,13 @@ const PinCard = ({ pin }) => {
   };
 
   return (
-    <div 
+    <div
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-102"
       onClick={handleCardClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Image container with fixed aspect ratio */}
+      {/* Media container */}
       <div className="relative pb-[100%] bg-gray-100">
         {/* Loading indicator */}
         {!isLoaded && (
@@ -56,22 +60,55 @@ const PinCard = ({ pin }) => {
           </div>
         )}
 
-        {/* Image */}
-        {pin.image && (
-          <img
-            src={pin.image.url}
-            alt={pin.title || "Pin"}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-              isLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            onLoad={handleImageLoad}
-            onError={() => setIsLoaded(true)} 
-          />
+        {/* Conditional media rendering */}
+        {pin.media && (
+          <>
+            {pin.media.type === "image" ? (
+              <img
+                src={pin.media.url}
+                alt={pin.title || "Pin"}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                  isLoaded ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={handleMediaLoad}
+                onError={() => setIsLoaded(true)}
+              />
+            ) : (
+              <video
+                src={pin.media.url}
+                alt={pin.title || "Pin"}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                  isLoaded ? "opacity-100" : "opacity-0"
+                }`}
+                onLoadedData={handleMediaLoad} // Use onLoadedData for videos
+                onError={() => setIsLoaded(true)}
+              />
+            )}
+
+            {/* Media type icon */}
+            {pin.media.type === "video" ? (
+              <div className="absolute top-2 left-2 p-1 bg-gray-900 bg-opacity-70 rounded-full text-white">
+                <VideoIcon size={20} />
+              </div>
+            ) : (
+              <div className="absolute top-2 left-2 p-1 bg-gray-900 bg-opacity-70 rounded-full text-white">
+                <ImageIcon size={20} />
+              </div>
+            )}
+          </>
         )}
 
-        <div className={`absolute inset-0 bg-black transition-all duration-300 flex items-end justify-between p-3 ${
-          isHovered ? "bg-opacity-30 opacity-100" : "bg-opacity-0 opacity-0"
-        }`}>
+        <div
+          className={`absolute inset-0 bg-black transition-all duration-300 flex items-end justify-between p-3 ${
+            isHovered ? "bg-opacity-30 opacity-100" : "bg-opacity-0 opacity-0"
+          }`}
+        >
+          {/* Play button overlay for videos */}
+          {pin.media?.type === "video" && isHovered && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <PlayCircle size={64} className="text-white opacity-80" />
+            </div>
+          )}
           <div className="flex gap-2">
             <button
               className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md hover:bg-gray-100"

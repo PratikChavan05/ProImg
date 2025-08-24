@@ -18,7 +18,7 @@ import {
   ThumbsUp,
   ExternalLink,
   Image,
-  Camera,
+  Video, 
   Lock,
   X,
 } from "lucide-react";
@@ -26,7 +26,6 @@ import {
 const PinPage = ({ user }) => {
   const params = useParams();
   const navigate = useNavigate();
-
 
   const {
     loading,
@@ -39,7 +38,6 @@ const PinPage = ({ user }) => {
     likePin,
   } = PinData();
 
-
   const [edit, setEdit] = useState(false);
   const [title, setTitle] = useState("");
   const [pinValue, setPinValue] = useState("");
@@ -47,7 +45,7 @@ const PinPage = ({ user }) => {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false); // Renamed from showImageModal
   const [commentSorting, setCommentSorting] = useState("newest");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [relatedPins, setRelatedPins] = useState([]);
@@ -90,26 +88,34 @@ const PinPage = ({ user }) => {
       setTitle(pin.title || "");
       setPinValue(pin.pin || "");
 
-      
       const mockRelatedPins = [
         {
           _id: "related1",
           title: "Similar Design Inspiration",
-          image: { url: "https://via.placeholder.com/300" },
+          media: {
+            url: "https://via.placeholder.com/300",
+            type: "image",
+          },
           likes: ["user1", "user2"],
           owner: { name: "Designer Pro" },
         },
         {
           _id: "related2",
           title: "Related Creative Work",
-          image: { url: "https://via.placeholder.com/300" },
+          media: {
+            url: "https://via.placeholder.com/300/500/0000FF",
+            type: "image",
+          },
           likes: ["user1"],
           owner: { name: "Creative Mind" },
         },
         {
           _id: "related3",
           title: "More Like This",
-          image: { url: "https://via.placeholder.com/300" },
+          media: {
+            url: "https://via.placeholder.com/300/FF0000/FFFFFF",
+            type: "image",
+          },
           likes: ["user3", "user4", "user5"],
           owner: { name: "Inspiration Hub" },
         },
@@ -220,17 +226,14 @@ const PinPage = ({ user }) => {
     </div>
   );
 
-  // Show loading state
   if (loading) {
     return <Loading />;
   }
 
-  // Show error state
   if (error) {
     return <ErrorDisplay />;
   }
 
-  // Show error if pin data is missing
   if (!pin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] bg-gray-900">
@@ -248,10 +251,8 @@ const PinPage = ({ user }) => {
     );
   }
 
-  // Safely check if current user is the pin owner
   const isOwner = pin.owner && user && pin.owner._id === user._id;
 
-  // Format date safely
   const formattedDate = pin.createdAt
     ? new Date(pin.createdAt).toLocaleDateString("en-US", {
         year: "numeric",
@@ -263,7 +264,6 @@ const PinPage = ({ user }) => {
   return (
     <div className="min-h-screen py-8 px-4 bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100">
       <div className="max-w-6xl mx-auto">
-        {/* Back navigation */}
         <button
           onClick={() => navigate(-1)}
           className="flex items-center text-gray-300 hover:text-white mb-6 transition-colors"
@@ -274,23 +274,34 @@ const PinPage = ({ user }) => {
 
         <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
           <div className="flex flex-col lg:flex-row">
-            {/* Left side - Image */}
+            {/* Left side - Media */}
             <div className="w-full lg:w-3/5 bg-gray-900 relative flex items-center justify-center min-h-[400px]">
-              {pin.image && pin.image.url ? (
-                <img
-                  src={pin.image.url}
-                  alt={pin.title || "Pin image"}
-                  className="w-full h-full object-contain lg:max-h-[80vh] cursor-zoom-in"
-                  onClick={() => setShowImageModal(true)}
-                />
+              {pin.media && pin.media.url ? (
+                <>
+                  {pin.media.type === "image" ? (
+                    <img
+                      src={pin.media.url}
+                      alt={pin.title || "Pin image"}
+                      className="w-full h-full object-contain lg:max-h-[80vh] cursor-zoom-in"
+                      onClick={() => setShowMediaModal(true)}
+                    />
+                  ) : (
+                    <video
+                      src={pin.media.url}
+                      controls
+                      className="w-full h-full object-contain lg:max-h-[80vh] cursor-zoom-in"
+                      onClick={() => setShowMediaModal(true)}
+                    />
+                  )}
+                </>
               ) : (
                 <div className="text-gray-400 flex flex-col items-center">
                   <Image size={64} className="mb-3" />
-                  <p>No image available</p>
+                  <p>No media available</p>
                 </div>
               )}
 
-              {/* Image actions overlay */}
+              {/* Media actions overlay */}
               <div className="absolute bottom-4 right-4 flex space-x-3">
                 <button
                   onClick={likeHandler}
@@ -324,16 +335,20 @@ const PinPage = ({ user }) => {
                   className="w-10 h-10 rounded-full bg-gray-800 shadow-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (pin.image?.url) {
-                      fetch(pin.image.url)
+                    if (pin.media?.url) {
+                      const filename = pin.title
+                        ? `${pin.title.replace(/\s+/g, "_")}.${
+                            pin.media.type === "image" ? "jpg" : "mp4"
+                          }`
+                        : `download.${pin.media.type === "image" ? "jpg" : "mp4"}`;
+
+                      fetch(pin.media.url)
                         .then((response) => response.blob())
                         .then((blob) => {
                           const url = window.URL.createObjectURL(blob);
                           const link = document.createElement("a");
                           link.href = url;
-                          link.download = pin.title
-                            ? `${pin.title.replace(/\s+/g, "_")}.jpg`
-                            : "download.jpg";
+                          link.download = filename;
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
@@ -376,7 +391,6 @@ const PinPage = ({ user }) => {
 
             {/* Right side - Content */}
             <div className="w-full lg:w-3/5 p-6 flex flex-col bg-gray-800">
-              {/* Header with edit/delete options */}
               <div className="flex items-center justify-between mb-6">
                 {edit ? (
                   <input
@@ -411,7 +425,6 @@ const PinPage = ({ user }) => {
                 )}
               </div>
 
-              {/* Description */}
               <div className="mb-6">
                 {edit ? (
                   <textarea
@@ -437,7 +450,6 @@ const PinPage = ({ user }) => {
                 )}
               </div>
 
-              {/* Date and stats */}
               <div className="flex items-center text-gray-400 text-sm mb-6 bg-gray-700 py-3 px-4 rounded-lg">
                 {formattedDate && (
                   <>
@@ -451,7 +463,6 @@ const PinPage = ({ user }) => {
                   {pin.comments && Array.isArray(pin.comments)
                     ? pin.comments.length
                     : 0}{" "}
-                  
                 </span>
 
                 <div className="mx-3 h-1 w-1 rounded-full bg-gray-500"></div>
@@ -459,7 +470,6 @@ const PinPage = ({ user }) => {
                 <Heart size={20} className="mr-1" />
                 <span>
                   {pin.likes && Array.isArray(pin.likes) ? pin.likes.length : 0}{" "}
-                  
                 </span>
 
                 <div className="flex-grow"></div>
@@ -468,7 +478,6 @@ const PinPage = ({ user }) => {
                 <span>{Math.floor(Math.random() * 1000) + 100} </span>
               </div>
 
-              {/* Creator profile */}
               {pin.owner && (
                 <div className="flex items-center bg-gray-700 p-4 rounded-lg my-6">
                   <Link
@@ -492,12 +501,9 @@ const PinPage = ({ user }) => {
                       </p>
                     </div>
                   </Link>
-
-                 
                 </div>
               )}
 
-              {/* Comment form */}
               <form className="mb-6" onSubmit={submitHandler}>
                 <div className="flex items-center">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold mr-3">
@@ -526,7 +532,6 @@ const PinPage = ({ user }) => {
                 </div>
               </form>
 
-              {/* Comments section */}
               <div className="bg-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-medium text-white flex items-center">
@@ -611,67 +616,38 @@ const PinPage = ({ user }) => {
                   )}
                 </div>
               </div>
-
-              {/* Related Pins Section */}
-              {/* <div className="mt-8">
-                <h3 className="font-medium text-white mb-4">More like this</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {relatedPins.map((relatedPin) => (
-                    <div
-                      key={relatedPin._id}
-                      className="bg-gray-700 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => navigate(`/pin/${relatedPin._id}`)}
-                    >
-                      <div className="h-32 overflow-hidden">
-                        <img
-                          src={relatedPin.image?.url}
-                          alt={relatedPin.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-2">
-                        <h4 className="text-sm font-medium text-white truncate">
-                          {relatedPin.title}
-                        </h4>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-gray-400">
-                            {relatedPin.owner?.name}
-                          </span>
-                          <div className="flex items-center text-xs text-gray-400">
-                            <Heart size={10} className="mr-1" />
-                            <span>{relatedPin.likes?.length || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div> */}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Fullscreen Image Modal */}
-      {showImageModal && pin.image && pin.image.url && (
+      {showMediaModal && pin.media && pin.media.url && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
           <div className="absolute top-4 right-4 z-10">
             <button
-              onClick={() => setShowImageModal(false)}
+              onClick={() => setShowMediaModal(false)}
               className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-full hover:bg-gray-700 text-white transition-colors"
             >
               <X size={20} />
             </button>
           </div>
-          <img
-            src={pin.image.url}
-            alt={pin.title || "Pin image"}
-            className="max-w-full max-h-[90vh] object-contain"
-          />
+          {pin.media.type === "image" ? (
+            <img
+              src={pin.media.url}
+              alt={pin.title || "Pin image"}
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+          ) : (
+            <video
+              src={pin.media.url}
+              controls
+              autoPlay
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+          )}
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md border border-gray-700">

@@ -2,20 +2,17 @@ import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
 import { UserData } from "./UserContext";
 import { toast } from "react-toastify";
-// import { set } from "mongoose";
-import { CodeSquare } from "lucide-react";
 
 const PinContext = createContext();
 
 export const PinProvider = ({ children }) => {
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { isAuth} = UserData();
+  const { isAuth } = UserData();
 
   async function fetchPins() {
     try {
       const { data } = await axios.get("/api/pin/all");
-
       setPins(data);
       setLoading(false);
     } catch (error) {
@@ -30,7 +27,6 @@ export const PinProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await axios.get("/api/pin/" + id);
-
       setPin(data);
       setLoading(false);
     } catch (error) {
@@ -71,19 +67,6 @@ export const PinProvider = ({ children }) => {
     }
   }
 
-  // const [likes, setLikes] = useState([])
- 
-  // async function getCountOfLikes(id) {
-  //   try {
-  //     console.log("id", id);
-  //     const { data } = await axios.get("/api/pin/likes/" + id);
-  //     setLikes(data.id);
-  //     console.log(data.id);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
   async function deleteComment(id, commentId) {
     try {
       const { data } = await axios.delete(
@@ -110,25 +93,12 @@ export const PinProvider = ({ children }) => {
     }
   }
 
-  async function addPin(
-    formData,
-    setFilePrev,
-    setFile,
-    setTitle,
-    setPin,
-    navigate
-  ) 
-  
-  {
+  // Simplified addPin function
+  async function addPin(formData, navigate) {
     setLoading(true);
     try {
       const { data } = await axios.post("/api/pin/new", formData);
-
       toast.success(data.message);
-      setFile([]);
-      setFilePrev("");
-      setPin("");
-      setTitle("");
       setLoading(false);
       fetchPins();
       navigate("/");
@@ -141,6 +111,7 @@ export const PinProvider = ({ children }) => {
   useEffect(() => {
     fetchPins();
   }, [isAuth]);
+
   return (
     <PinContext.Provider
       value={{
@@ -154,8 +125,6 @@ export const PinProvider = ({ children }) => {
         deletePin,
         addPin,
         likePin,
-        // getCountOfLikes,
-        // likes,
         fetchPins,
       }}
     >
