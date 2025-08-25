@@ -134,14 +134,14 @@ const Account = ({ user }) => {
             className={`px-4 py-2 text-lg font-medium ${activeTab === "yourPins" ? "border-b-2 border-green-400 text-green-400" : "text-gray-400"}`}
             onClick={() => setActiveTab("yourPins")}
           >
-            <UserCircle size={18} className="inline-block mr-1" />
+            <UserCircle size={19} className="inline-block mr-1" />
             Your Pins
           </button>
           <button
             className={`px-4 py-2 text-lg font-medium ${activeTab === "likedPins" ? "border-b-2 border-green-400 text-green-400" : "text-gray-400"}`}
             onClick={() => setActiveTab("likedPins")}
           >
-            <Heart size={18} className="inline-block mr-1" />
+            <Heart size={19} className="inline-block mr-1" />
             Liked Pins
           </button>
         </div>
