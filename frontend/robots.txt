@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://proimg.onrender.com/sitemap.xml
