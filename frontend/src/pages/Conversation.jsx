@@ -13,10 +13,14 @@ import {
   Filter,
   X,
   User,
-  UserCog
+  UserCog,
+  CheckCircle2,
+  CheckCircle,
+  Globe
 } from "lucide-react";
 import { format, isToday, isYesterday, isThisWeek, isThisYear } from "date-fns";
 import { FaUserPlus } from "react-icons/fa";
+import AllUsersPopup from "../components/AllUsersPopup"; // Import the popup component
 
 const Conversations = ({loggedUser}) => {
   const [conversations, setConversations] = useState([]);
@@ -26,6 +30,9 @@ const Conversations = ({loggedUser}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); 
   const [refreshing, setRefreshing] = useState(false);
+  const [showAllUsersPopup, setShowAllUsersPopup] = useState(false);
+  const [followLoading, setFollowLoading] = useState({});
+  
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -108,6 +115,53 @@ const Conversations = ({loggedUser}) => {
     fetchConversations(true);
   };
 
+  // Handler for following/unfollowing users from popup
+  const handleFollowToggle = async (userId, event) => {
+    event.stopPropagation();
+    
+    if (!loggedUser) {
+      navigate('/login');
+      return;
+    }
+    
+    if (loggedUser._id === userId) {
+      return;
+    }
+
+    setFollowLoading(prev => ({ ...prev, [userId]: true }));
+    
+    try {
+      await axios.post(`/api/user/follow/${userId}`);
+      // You might want to update the logged user's following list here
+      // This depends on how you manage user state in your app
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  // Handler for messaging users from popup
+  const handleMessageUser = (userId, event) => {
+    event.stopPropagation();
+    
+    if (!loggedUser) {
+      navigate('/login');
+      return;
+    }
+    
+    if (loggedUser._id === userId) {
+      return;
+    }
+
+    navigate(`/messages/${userId}`);
+  };
+
+  // Handler for navigating to user profile from popup
+  const navigateToProfile = (userId) => {
+    navigate(`/user/${userId}`);
+  };
+
   const formatConversationTime = (dateString) => {
     const date = new Date(dateString);
     
@@ -178,20 +232,20 @@ const Conversations = ({loggedUser}) => {
           </div>
           
           <div className="flex items-center">
-            <button 
+            {/* <button 
               onClick={() => navigate(`/get/${loggedUser._id}`)}                     
-
               className="p-2 hover:bg-gray-700 rounded-full transition-colors"
               aria-label="Contacts"
             >
               <FaUserPlus size={24} className="text-green-400" />
-            </button>
+            </button> */}
             <button 
-              onClick={() => navigate("/messages/new")} 
+              onClick={() => setShowAllUsersPopup(true)} 
               className="p-2 hover:bg-gray-700 rounded-full transition-colors ml-2"
-              aria-label="New message"
+              aria-label="Find users to message"
+              title="Discover Users"
             >
-            
+              <Globe size={24} className="text-green-400" />
             </button>
           </div>
         </div>
@@ -280,12 +334,15 @@ const Conversations = ({loggedUser}) => {
                 <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-600" />
                 <p className="text-xl font-medium text-gray-400 mb-2">No Messages Yet</p>
                 <p className="text-gray-500 mb-6">Start a conversation with someone</p>
-                <button 
-                  onClick={() => navigate("/messages/new")} 
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm"
-                >
-                  New Message
-                </button>
+                <div className="flex gap-2 justify-center">
+                  <button 
+                    onClick={() => setShowAllUsersPopup(true)} 
+                    className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                  >
+                    <Globe size={16} />
+                    Discover Users
+                  </button>
+                </div>
               </div>
             )
           ) : (
@@ -349,6 +406,17 @@ const Conversations = ({loggedUser}) => {
           )}
         </div>
       </div>
+
+      {/* All Users Popup */}
+      <AllUsersPopup
+        isOpen={showAllUsersPopup}
+        onClose={() => setShowAllUsersPopup(false)}
+        currentUser={loggedUser}
+        onNavigateToProfile={navigateToProfile}
+        onMessageUser={handleMessageUser}
+        onFollowToggle={handleFollowToggle}
+        followLoading={followLoading}
+      />
     </div>
   );
 };

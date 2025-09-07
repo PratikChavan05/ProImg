@@ -5,15 +5,18 @@ import {toast} from "react-toastify";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "../context/UserContext";
-import { LogOut, UserCircle, Grid, Loader, Heart } from "lucide-react";
+import { LogOut, UserCircle, Grid, Loader, Heart, Globe, MessageSquare } from "lucide-react";
+import AllUsersPopup from "../components/AllUsersPopup"; // Import the popup component
 
 const Account = ({ user }) => {
   const navigate = useNavigate();
-  const { setIsAuth, setUser, fetchUser,isAuth } = UserData();
+  const { setIsAuth, setUser, fetchUser, isAuth } = UserData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { pins, loading } = PinData();
   const [likedPins, setLikedPins] = useState([]);
   const [activeTab, setActiveTab] = useState("yourPins");
+  const [showAllUsersPopup, setShowAllUsersPopup] = useState(false);
+  const [followLoading, setFollowLoading] = useState({});
 
   const logoutHandler = async () => {
     try {
@@ -23,8 +26,6 @@ const Account = ({ user }) => {
       setIsAuth(false);
       setUser([]);
       navigate("/login");
-    
-      
     } catch (error) {
       toast.error(error?.response?.data?.message || "Logout failed");
     } finally {
@@ -37,7 +38,6 @@ const Account = ({ user }) => {
       navigate("/login");
     }
   }, []);
-
 
   const userPins = pins && user && user._id ? pins.filter((pin) => pin.owner === user._id) : [];
 
@@ -55,6 +55,69 @@ const Account = ({ user }) => {
     fetchUser();
     fetchLikedPins();
   }, [user]);
+
+  // Handler for following/unfollowing users from popup
+  const handleFollowToggle = async (userId, event) => {
+    event.stopPropagation();
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user._id === userId) {
+      return;
+    }
+
+    setFollowLoading(prev => ({ ...prev, [userId]: true }));
+    
+    try {
+      await axios.post(`/api/user/follow/${userId}`);
+      
+      // Update the user's following list in context
+      const isFollowing = user?.following?.includes(userId);
+      if (isFollowing) {
+        setUser(prev => ({
+          ...prev,
+          following: prev.following.filter(id => id !== userId)
+        }));
+      } else {
+        setUser(prev => ({
+          ...prev,
+          following: [...(prev.following || []), userId]
+        }));
+      }
+      
+      // Refetch user data to get updated counts
+      fetchUser();
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+      toast.error("Failed to update follow status");
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  // Handler for messaging users from popup
+  const handleMessageUser = (userId, event) => {
+    event.stopPropagation();
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user._id === userId) {
+      return;
+    }
+
+    navigate(`/messages/${userId}`);
+  };
+
+  // Handler for navigating to user profile from popup
+  const navigateToProfile = (userId) => {
+    navigate(`/user/${userId}`);
+  };
 
   if (!user || !user._id) {
     return (
@@ -124,6 +187,20 @@ const Account = ({ user }) => {
                   <Grid size={18} />
                   <span>Create Pin</span>
                 </button>
+                {/* <button
+                  onClick={() => navigate('/messages')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <MessageSquare size={18} />
+                  <span>Messages</span>
+                </button> */}
+                <button
+                  onClick={() => setShowAllUsersPopup(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Globe size={18} />
+                  <span>Discover Users</span>
+                </button>
               </div>
             </div>
           </div>
@@ -158,7 +235,17 @@ const Account = ({ user }) => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-center">No Pins Yet</p>
+            <div className="text-center py-12">
+              <Grid className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+              <p className="text-gray-400 text-xl mb-2">No Pins Yet</p>
+              <p className="text-gray-500 mb-6">Start creating and sharing your ideas</p>
+              <button
+                onClick={() => navigate('/create')}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Create Your First Pin
+              </button>
+            </div>
           )
         ) : (
           likedPins.length > 0 ? (
@@ -168,10 +255,31 @@ const Account = ({ user }) => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-center">No Liked Pins</p>
+            <div className="text-center py-12">
+              <Heart className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+              <p className="text-gray-400 text-xl mb-2">No Liked Pins</p>
+              <p className="text-gray-500 mb-6">Explore and like pins that inspire you</p>
+              <button
+                onClick={() => navigate('/')}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Explore Pins
+              </button>
+            </div>
           )
         )}
       </div>
+
+      {/* All Users Popup */}
+      <AllUsersPopup
+        isOpen={showAllUsersPopup}
+        onClose={() => setShowAllUsersPopup(false)}
+        currentUser={user}
+        onNavigateToProfile={navigateToProfile}
+        onMessageUser={handleMessageUser}
+        onFollowToggle={handleFollowToggle}
+        followLoading={followLoading}
+      />
     </div>
   );
 };

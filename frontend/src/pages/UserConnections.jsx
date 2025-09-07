@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   UserCircle, 
   UserPlus, 
@@ -11,8 +11,10 @@ import {
   Users, 
   Heart,
   Loader,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from 'lucide-react';
+import AllUsersPopup from '../components/AllUsersPopup';
 
 const UserConnections = () => {
   const [userData, setUserData] = useState({ followers: [], following: [] });
@@ -23,6 +25,8 @@ const UserConnections = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [userName, setUserName] = useState('');
+  const [showAllUsersPopup, setShowAllUsersPopup] = useState(false);
+  
   const { id } = useParams(); 
   const navigate = useNavigate();
 
@@ -133,14 +137,72 @@ const UserConnections = () => {
     return currentUser && currentUser.following && currentUser.following.includes(userId);
   };
 
-  const getFilteredUsers = (users) => {
-    if (!searchQuery) return users;
+  const getFilteredUsers = (users, query = searchQuery) => {
+    if (!query) return users;
     
     return users.filter(user => 
-      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      user.name?.toLowerCase().includes(query.toLowerCase()) || 
+      user.email?.toLowerCase().includes(query.toLowerCase())
     );
   };
+
+  const renderUserCard = (user) => (
+    <div 
+      key={user._id} 
+      className="flex items-center p-5 rounded-xl bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-all duration-300 shadow-lg cursor-pointer"
+      onClick={() => navigateToProfile(user._id)}
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+        {user.profilePicture ? (
+          <img 
+            src={user.profilePicture} 
+            alt={user.name} 
+            className="w-full h-full rounded-full object-cover"
+          />
+        ) : (
+          user.name?.charAt(0).toUpperCase() || <UserCircle size={16} />
+        )}
+      </div>
+      <div className="ml-4 flex-1">
+        <h3 className="font-medium text-white text-lg">{user.name}</h3>
+      </div>
+      {currentUser && currentUser._id !== user._id && (
+        <div className="flex items-center">
+          <button
+            onClick={(e) => handleMessageUser(user._id, e)}
+            className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-white mr-2 transition-all duration-200"
+            aria-label="Message user"
+            title="Send message"
+          >
+            <MessageSquare size={18} />
+          </button>
+          <button
+            onClick={(e) => handleFollowToggle(user._id, e)}
+            disabled={followLoading[user._id]}
+            className={`p-2 rounded-lg flex items-center ${
+              isFollowing(user._id)
+                ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            } transition-colors duration-200`}
+          >
+            {followLoading[user._id] ? (
+              <Loader size={18} className="animate-spin" />
+            ) : isFollowing(user._id) ? (
+              <>
+                <UserMinus size={18} className="mr-2" />
+                <span></span>
+              </>
+            ) : (
+              <>
+                <UserPlus size={18} className="mr-2" />
+                <span></span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const renderUserList = (users) => {
     const filteredUsers = getFilteredUsers(users);
@@ -158,64 +220,7 @@ const UserConnections = () => {
     
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredUsers.map((user) => (
-          <div 
-            key={user._id} 
-            className="flex items-center p-5 rounded-xl bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-all duration-300 shadow-lg cursor-pointer"
-            onClick={() => navigateToProfile(user._id)}
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
-              {user.profilePicture ? (
-                <img 
-                  src={user.profilePicture} 
-                  alt={user.name} 
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                user.name?.charAt(0).toUpperCase() || <UserCircle size={16} />
-              )}
-            </div>
-            <div className="ml-4 flex-1">
-              <h3 className="font-medium text-white text-lg">{user.name}</h3>
-         
-            </div>
-            {currentUser && currentUser._id !== user._id && (
-              <div className="flex items-center">
-                <button
-                  onClick={(e) => handleMessageUser(user._id, e)}
-                  className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-white mr-2 transition-all duration-200"
-                  aria-label="Message user"
-                  title="Send message"
-                >
-                  <MessageSquare size={18} />
-                </button>
-                <button
-                  onClick={(e) => handleFollowToggle(user._id, e)}
-                  disabled={followLoading[user._id]}
-                  className={`p-2 rounded-lg flex items-center ${
-                    isFollowing(user._id)
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  } transition-colors duration-200`}
-                >
-                  {followLoading[user._id] ? (
-                    <Loader size={18} className="animate-spin" />
-                  ) : isFollowing(user._id) ? (
-                    <>
-                      <UserMinus size={18} className="mr-2" />
-                      <span>Unfollow</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={18} className="mr-2" />
-                      <span>Follow</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+        {filteredUsers.map((user) => renderUserCard(user))}
       </div>
     );
   };
@@ -252,22 +257,33 @@ const UserConnections = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100">
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center mb-8">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="mr-4 p-2 rounded-full hover:bg-gray-700 transition-colors"
-            aria-label="Go back"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              {userName}'s Connections
-            </h1>
-            <p className="text-gray-400 text-sm mt-1">
-              {activeTab === 'followers' ? 'People who follow this user' : 'People this user follows'}
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="mr-4 p-2 rounded-full hover:bg-gray-700 transition-colors"
+              aria-label="Go back"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center">
+                {userName}'s Connections
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                {activeTab === 'followers' ? 'People who follow this user' : 'People this user follows'}
+              </p>
+            </div>
           </div>
+          
+          <button 
+                        onClick={() => setShowAllUsersPopup(true)} 
+                        className="p-2 hover:bg-gray-700 rounded-full transition-colors ml-2"
+                        aria-label="Find users to message"
+                        title="Discover Users"
+                      >
+                        <Globe size={24} className="text-green-400" />
+                      </button>
         </div>
         
         <div className="mb-8">
@@ -326,6 +342,16 @@ const UserConnections = () => {
           )}
         </div>
       </div>
+
+      <AllUsersPopup
+        isOpen={showAllUsersPopup}
+        onClose={() => setShowAllUsersPopup(false)}
+        currentUser={currentUser}
+        onNavigateToProfile={navigateToProfile}
+        onMessageUser={handleMessageUser}
+        onFollowToggle={handleFollowToggle}
+        followLoading={followLoading}
+      />
     </div>
   );
 };
