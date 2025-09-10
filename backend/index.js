@@ -59,11 +59,13 @@ app.use(passport.session());
 
 import userRoutes from "./routes/userRoutes.js";
 import pinRoutes from "./routes/pinRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";  
+import healthRoutes from "./models/health.js";
 
 app.use("/api/user", userRoutes);
 app.use("/api/pin", pinRoutes);
 app.use("/api/message", messageRoutes);
+app.use("/api/check", healthRoutes);
 
 const __dirname = path.resolve();
 app.use(express.static(path.join(__dirname, "/frontend/dist")));
