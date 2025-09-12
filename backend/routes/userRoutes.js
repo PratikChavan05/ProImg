@@ -1,5 +1,5 @@
 import  express from 'express';
-import { followAndUnfollow, forgetPassword, getAllUsers, getUserFollowersAndFollowing, loginUser, logOutUser, myProfile, registerWithOtp, resetPassword, userProfile, verifyOtpAndRegister } from '../controllers/userControllers.js';
+import { followAndUnfollow, forgetPassword, getAllUsers, getMultipleUsersStatus, getUserFollowersAndFollowing, getUserStatus, loginUser, logOutUser, myProfile, registerWithOtp, resetPassword, updateLastSeen, userProfile, verifyOtpAndRegister } from '../controllers/userControllers.js';
 import { isAuth } from '../middlewares/isAuth.js';
 import passport from 'passport';
 import generateToken from '../utils/generateToken.js';
@@ -17,6 +17,9 @@ router.get("/all",isAuth,getAllUsers);
 router.get("/:id",isAuth,userProfile);
 router.post("/follow/:id",isAuth,followAndUnfollow);
 router.get("/get/:id",isAuth,getUserFollowersAndFollowing);
+router.get("/status/:userId", getUserStatus);
+router.post("/status/multiple", getMultipleUsersStatus);
+router.put("/status/update", isAuth, updateLastSeen);
 
 
 
