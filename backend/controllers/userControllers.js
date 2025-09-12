@@ -344,3 +344,81 @@ export const getAllUsers=TryCatch(async(req,res)=>{
     const users=await User.find().select("-password");
     res.json(users);
 });
+
+export const getUserStatus = TryCatch(async (req, res) => {
+  const { userId } = req.params;
+  
+  // Validate userId
+  if (!userId) {
+    return res.status(400).json({
+      message: "User ID is required",
+    });
+  }
+
+  const user = await User.findById(userId).select('name email lastSeen');
+  
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+  
+  res.status(200).json({
+    name: user.name,
+    email: user.email,
+    lastSeen: user.lastSeen,
+    message: "User status retrieved successfully"
+  });
+});
+
+// Optional: Bulk status check for multiple users (useful for chat lists)
+export const getMultipleUsersStatus = TryCatch(async (req, res) => {
+  const { userIds } = req.body; // Expecting array of user IDs
+  
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({
+      message: "Valid array of user IDs is required",
+    });
+  }
+
+  const users = await User.find({ 
+    _id: { $in: userIds } 
+  }).select('name email lastSeen');
+  
+  // Format response as object with userId as key
+  const usersStatus = {};
+  users.forEach(user => {
+    usersStatus[user._id] = {
+      name: user.name,
+      email: user.email,
+      lastSeen: user.lastSeen
+    };
+  });
+  
+  res.status(200).json({
+    users: usersStatus,
+    message: "Multiple users status retrieved successfully"
+  });
+});
+
+// Update user's last seen manually (if needed)
+export const updateLastSeen = TryCatch(async (req, res) => {
+  const userId = req.user._id; // From auth middleware
+  
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { lastSeen: new Date() },
+    { new: true }
+  ).select('name email lastSeen');
+  
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+  
+  res.status(200).json({
+    user,
+    message: "Last seen updated successfully"
+  });
+});
