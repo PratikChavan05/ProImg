@@ -4,7 +4,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { ArrowLeft, Send, MoreVertical, Image, Mic, Heart, Paperclip, Smile, User2Icon } from "lucide-react";
 import { format } from "date-fns";
+import { Check, CheckCheck, Clock } from "lucide-react";
+import CryptoJs from "crypto-js";
 
+const secret_key = import.meta.env.VITE_ENCRYPTION_SECRET;
+
+function encryptMessage(message){
+  return CryptoJs.AES.encrypt(message,secret_key).toString();
+}
+
+function decryptMessage(encryptedText){
+  const bytes = CryptoJs.AES.decrypt(encryptedText,secret_key);
+  return bytes.toString(CryptoJs.enc.Utf8);
+}
 const MessageChat = ({ currentUser }) => {
   const { userId } = useParams();
   const [messages, setMessages] = useState([]);
@@ -22,9 +34,6 @@ const MessageChat = ({ currentUser }) => {
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // ===============================
-  // Utility functions
-  // ===============================
   const fetchUserStatus = async (userId) => {
     try {
       const { data } = await axios.get(`/api/user/status/${userId}`);
@@ -53,11 +62,11 @@ const MessageChat = ({ currentUser }) => {
     }
   };
 
-  // Initialize socket connection - FIXED: Removed lastSeen from dependencies
+
   useEffect(() => {
     const initializeSocket = () => {
       socketRef.current = io(
-        process.env.NODE_ENV === "production" ? window.location.origin : "https://proimg.onrender.com",
+        process.env.NODE_ENV === "production" ? window.location.origin : "http://localhost:5002",
         {
           withCredentials: true,
           transports: ["websocket", "polling"],
@@ -82,13 +91,13 @@ const MessageChat = ({ currentUser }) => {
         setOnlineUsers(users);
         const chatUserOnline = users.includes(userId);
         setIsOnline(chatUserOnline);
-        // FIXED: Don't reset lastSeen here, let the server handle it
+
       });
 
       socketRef.current.on("userOnline", ({ userId: onlineUserId }) => {
         if (onlineUserId === userId) {
           setIsOnline(true);
-          setLastSeen(null); // Clear lastSeen when user comes online
+          setLastSeen(null);
         }
       });
 
@@ -132,9 +141,8 @@ const MessageChat = ({ currentUser }) => {
     };
 
     return initializeSocket();
-  }, [currentUser?._id, userId]); // FIXED: Removed lastSeen from dependencies
+  }, [currentUser?._id, userId]);
 
-  // Fetch initial status when userId changes - FIXED: Separate effect with better dependency management
   useEffect(() => {
     const fetchInitialStatus = async () => {
       if (!userId) return;
@@ -142,8 +150,7 @@ const MessageChat = ({ currentUser }) => {
       const statusData = await fetchUserStatus(userId);
       if (statusData) {
         setUser({ name: statusData.name, email: statusData.email });
-        
-        // Only set lastSeen from API if we don't have socket connection yet
+
         if (!socketConnected) {
           setLastSeen(statusData.lastSeen);
         }
@@ -151,9 +158,8 @@ const MessageChat = ({ currentUser }) => {
     };
 
     fetchInitialStatus();
-  }, [userId]); // FIXED: Only depend on userId, not socketConnected
+  }, [userId]);
 
-  // FIXED: Separate effect for getting status via socket after connection
   useEffect(() => {
     if (socketRef.current && socketConnected && userId) {
       socketRef.current.emit("getUserStatus", { userId }, (response) => {
@@ -167,7 +173,7 @@ const MessageChat = ({ currentUser }) => {
     }
   }, [userId, socketConnected]);
 
-  // Fetch messages
+
   useEffect(() => {
     if (!userId || !currentUser?._id) return;
 
@@ -175,7 +181,7 @@ const MessageChat = ({ currentUser }) => {
       try {
         setLoading(true);
         const { data } = await axios.get(`/api/message/${userId}`);
-        setMessages(data);
+        setMessages(data.map(msg=>({...msg,content:decryptMessage(msg.content)})));
         setLoading(false);
       } catch (error) {
         console.error("Failed to load messages", error);
@@ -197,12 +203,11 @@ const MessageChat = ({ currentUser }) => {
     };
   }, [userId, currentUser?._id, socketConnected]);
 
-  // Real-time socket listeners - FIXED: Better cleanup and dependency management
   useEffect(() => {
     if (!socketRef.current || !userId || !currentUser?._id || !socketConnected) return;
 
     const handleReceiveMessage = (message) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev)=[...prev,{...message,content:decryptMessage(message.content)}]);
       if (message.sender._id === userId) {
         socketRef.current.emit("markAsRead", { senderId: userId, receiverId: currentUser._id });
       }
@@ -280,9 +285,9 @@ const MessageChat = ({ currentUser }) => {
     messageInputRef.current?.focus();
 
     try {
-      const { data } = await axios.post("/api/message/send", { receiverId: userId, content: newMessage });
+      const { data } = await axios.post("/api/message/send", { receiverId: userId, content: encryptMessage(newMessage) });
       setMessages((prev) =>
-        prev.map((msg) => (msg._id === tempMessage._id ? { ...data, isPending: false } : msg))
+        prev.map((msg) => (msg._id === tempMessage._id ? { ...data,content:decryptMessage(data.content), isPending: false } : msg))
       );
     } catch (error) {
       console.error("Error sending message", error);
@@ -334,19 +339,26 @@ const MessageChat = ({ currentUser }) => {
           {user && (
             <div className="flex items-center">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-tr from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                <button
+                  onClick={() => navigate(`/user/${userId}`)}
+                  className="w-10 h-10 bg-gradient-to-tr from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg"
+                >
                   <User2Icon size={16} className="text-white" />
-                </div>
+                </button>
+
                 {isOnline && socketConnected && (
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-950 animate-pulse"></div>
                 )}
               </div>
               <div className="ml-4">
                 <h2 className="font-semibold text-lg text-white">{user.name}</h2>
-                <span className={`text-xs ${getActivityColor()} font-medium`}>{getActivityStatus()}</span>
+                <span className={`text-xs ${getActivityColor()} font-medium`}>
+                  {getActivityStatus()}
+                </span>
               </div>
             </div>
           )}
+
         </div>
         <div className="flex items-center">
           <button className="p-2 rounded-full hover:bg-slate-700 transition-colors duration-200">
@@ -378,25 +390,26 @@ const MessageChat = ({ currentUser }) => {
                   </div>
                 )}
                 <div
-                  className={`max-w-xs px-5 py-3 rounded-3xl shadow-lg transform transition-all duration-300 ease-in-out ${
-                    isSender 
-                    ? "bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-br-none" 
+                  className={`max-w-xs px-5 py-3 rounded-3xl shadow-lg transform transition-all duration-300 ease-in-out ${isSender
+                    ? "bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-br-none"
                     : "bg-gray-800 text-white rounded-bl-none"
-                  }`}
+                    }`}
                 >
                   <p className="text-sm">{msg.content}</p>
-                  <div className="text-xs text-gray-300 mt-1 flex items-center justify-end">
-                    {format(new Date(msg.createdAt), "h:mm a")}
+                  <div className="text-xs text-gray-300 mt-1 text-right">
+                    <span>
+                      {format(new Date(msg.createdAt), "h:mm a")}
+                    </span>
                     {isSender && (
-                      <span className="ml-1">
+                      <>
                         {msg.read ? (
-                          <div className="text-blue-300">✓✓</div>
+                          <CheckCheck size={14} className="ml-1 text-blue-400 inline-block" />
                         ) : msg.isPending ? (
-                          <div className="text-gray-400">⏳</div>
+                          <Clock size={14} className="ml-1 text-gray-400 inline-block" />
                         ) : (
-                          <div className="text-gray-400">✓</div>
+                          <Check size={14} className="ml-1 text-gray-400 inline-block" />
                         )}
-                      </span>
+                      </>
                     )}
                   </div>
                 </div>

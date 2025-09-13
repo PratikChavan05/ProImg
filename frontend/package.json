@@ -9,7 +9,8 @@
     "start": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.8.3",
+    "axios": "^1.12.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.477.0",
@@ -20,7 +21,9 @@
     "react-router-dom": "^7.3.0",
     "react-spinners": "^0.15.0",
     "react-toastify": "^11.0.5",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
