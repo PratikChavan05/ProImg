@@ -66,7 +66,7 @@ const MessageChat = ({ currentUser }) => {
   useEffect(() => {
     const initializeSocket = () => {
       socketRef.current = io(
-        process.env.NODE_ENV === "production" ? window.location.origin : "http://localhost:5002",
+        process.env.NODE_ENV === "production" ? window.location.origin : "https://proimg.onrender.com",
         {
           withCredentials: true,
           transports: ["websocket", "polling"],
