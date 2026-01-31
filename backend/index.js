@@ -27,7 +27,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === "production" ? false : ["http://localhost:3000", "http://localhost:5173","http://localhost:5174","https://pro-img-48i9.vercel.app/"],
+    origin: process.env.NODE_ENV === "production" 
+      ? ["https://pro-img-48i9.vercel.app", process.env.FRONTEND_URL].filter(Boolean)
+      : ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -37,7 +39,9 @@ const io = new Server(server, {
 app.set("io", io);
 
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" ? false : ["http://localhost:3000", "http://localhost:5173","http://localhost:5174"],
+  origin: process.env.NODE_ENV === "production" 
+    ? ["https://pro-img-48i9.vercel.app", process.env.FRONTEND_URL].filter(Boolean)
+    : ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
   credentials: true
 }));
 app.use(express.json());
