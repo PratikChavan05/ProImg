@@ -308,14 +308,17 @@ export const followAndUnfollow=TryCatch(async(req,res)=>{
 })
 
 export const logOutUser=TryCatch(async(req,res)=>{
-    res.cookie("token","",{
-        maxAge:0,
+    res.clearCookie("token",{
+        path: "/",
         httpOnly:true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        
     });
+    console.log(process.env.NODE_ENV);
     res.json({
         message:"Logged out successfully",
+        
     });
 });
 
