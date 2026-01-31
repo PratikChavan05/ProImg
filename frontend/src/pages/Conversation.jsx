@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { format, isToday, isYesterday, isThisWeek, isThisYear } from "date-fns";
 import { FaUserPlus } from "react-icons/fa";
-import AllUsersPopup from "../components/AllUsersPopup"; // Import the popup component
+import AllUsersPopup from "../components/AllUsersPopup";
+import API_BASE_URL from "../config/api"; // Import the popup component
 
 const Conversations = ({loggedUser}) => {
   const [conversations, setConversations] = useState([]);
@@ -42,7 +43,7 @@ const Conversations = ({loggedUser}) => {
     }
     
     try {
-      const { data } = await axios.get("/api/message/conversations");
+      const { data } = await axios.get(`${API_BASE_URL}/api/message/conversations`, { withCredentials: true });
       setConversations(data);
       applyFilters(data, searchTerm, activeFilter);
       setLoading(false);
@@ -131,7 +132,7 @@ const Conversations = ({loggedUser}) => {
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     
     try {
-      await axios.post(`/api/user/follow/${userId}`);
+      await axios.post(`${API_BASE_URL}/api/user/follow/${userId}`, {}, { withCredentials: true });
       // You might want to update the logged user's following list here
       // This depends on how you manage user state in your app
     } catch (err) {

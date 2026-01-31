@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { ArrowLeft, Send, MoreVertical, Image, Mic, Heart, Paperclip, Smile, UserPlus, User2Icon } from "lucide-react";
 import { format } from "date-fns";
+import API_BASE_URL from "../config/api";
 
 const MessageChat = ({ currentUser }) => {
   const { userId } = useParams();
@@ -22,7 +23,7 @@ const MessageChat = ({ currentUser }) => {
   const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = io(process.env.NODE_ENV === "production" ? window.location.origin : "https://proimg.onrender.com", {
+    socketRef.current = io(API_BASE_URL, {
       withCredentials: true,
     });
 
@@ -45,7 +46,7 @@ const MessageChat = ({ currentUser }) => {
 
     const fetchUser = async () => {
       try {
-        const { data } = await axios.get(`/api/user/get/${userId}`);
+        const { data } = await axios.get(`${API_BASE_URL}/api/user/get/${userId}`, { withCredentials: true });
         setUser(data);
         setLastSeen(data.lastSeen || null);
       } catch (error) {
@@ -56,7 +57,7 @@ const MessageChat = ({ currentUser }) => {
     const fetchMessages = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`/api/message/${userId}`);
+        const { data } = await axios.get(`${API_BASE_URL}/api/message/${userId}`, { withCredentials: true });
         setMessages(data);
         setLoading(false);
       } catch (error) {
@@ -147,7 +148,7 @@ const MessageChat = ({ currentUser }) => {
     messageInputRef.current?.focus();
 
     try {
-      const { data } = await axios.post("/api/message/send", { receiverId: userId, content: newMessage });
+      const { data } = await axios.post(`${API_BASE_URL}/api/message/send`, { receiverId: userId, content: newMessage }, { withCredentials: true });
 
       setMessages((prev) => prev.map((msg) => (msg._id === tempMessage._id ? { ...data, isPending: false } : msg)));
     } catch (error) {

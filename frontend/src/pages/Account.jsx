@@ -6,7 +6,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "../context/UserContext";
 import { LogOut, UserCircle, Grid, Loader, Heart, Globe, MessageSquare } from "lucide-react";
-import AllUsersPopup from "../components/AllUsersPopup"; // Import the popup component
+import AllUsersPopup from "../components/AllUsersPopup";
+import API_BASE_URL from "../config/api"; // Import the popup component
 
 const Account = ({ user }) => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const Account = ({ user }) => {
   const logoutHandler = async () => {
     try {
       setIsLoggingOut(true);
-      const { data } = await axios.get("/api/user/logout");
+      const { data } = await axios.get(`${API_BASE_URL}/api/user/logout`, { withCredentials: true });
       toast.success(data.message);
       setIsAuth(false);
       setUser([]);
@@ -45,7 +46,7 @@ const Account = ({ user }) => {
     const fetchLikedPins = async () => {
       if (!user || !user._id) return;
       try {
-        const { data } = await axios.get(`/api/pin/liked/${user._id}`);
+        const { data } = await axios.get(`${API_BASE_URL}/api/pin/liked/${user._id}`, { withCredentials: true });
         setLikedPins(data.pins);
       } catch (error) {
         toast.error("Failed to fetch liked pins");
@@ -72,7 +73,7 @@ const Account = ({ user }) => {
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     
     try {
-      await axios.post(`/api/user/follow/${userId}`);
+      await axios.post(`${API_BASE_URL}/api/user/follow/${userId}`, {}, { withCredentials: true });
       
       // Update the user's following list in context
       const isFollowing = user?.following?.includes(userId);

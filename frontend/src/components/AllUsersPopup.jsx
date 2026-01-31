@@ -12,6 +12,7 @@ import {
   X,
   Globe
 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 const AllUsersPopup = ({ 
   isOpen, 
@@ -41,7 +42,7 @@ const AllUsersPopup = ({
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/user/all');
+      const response = await axios.get(`${API_BASE_URL}/api/user/all`, { withCredentials: true });
       setAllUsers(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Error fetching users');

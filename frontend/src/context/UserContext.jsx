@@ -1,6 +1,8 @@
 import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import API_BASE_URL from "../config/api";
+
 const UserContext = createContext(); // Create a context
 
 export const UserProvider = ({ children }) => {
@@ -12,7 +14,7 @@ export const UserProvider = ({ children }) => {
   async function loginUser(email, password, navigate, fetchPins) {
     setBtnLoading(true);
     try {
-      const { data } = await axios.post("/api/user/login", { email, password });
+      const { data } = await axios.post(`${API_BASE_URL}/api/user/login`, { email, password }, { withCredentials: true });
       toast.success(data.message);
       setUser(data.user);
       setIsAuth(true);
@@ -30,7 +32,7 @@ export const UserProvider = ({ children }) => {
   async function forgotUser(email,navigate) {
     setBtnLoading(true);
     try {
-      const {data} = await axios.post("/api/user/forget", {email});
+      const {data} = await axios.post(`${API_BASE_URL}/api/user/forget`, {email}, { withCredentials: true });
       toast.success(data.message);
       setBtnLoading(false);
       const token =data.token;
@@ -45,7 +47,7 @@ export const UserProvider = ({ children }) => {
   async function resetUser(token,otp,password,navigate) {
     setBtnLoading(true);
     try {
-      const {data} = await axios.post("/api/user/reset-password/"+token, {otp,password});
+      const {data} = await axios.post(`${API_BASE_URL}/api/user/reset-password/${token}`, {otp,password}, { withCredentials: true });
       toast.success(data.message);
       setBtnLoading(false);
       navigate("/login");
@@ -60,7 +62,7 @@ export const UserProvider = ({ children }) => {
   async function registerUser(name, email, password, navigate) {
     setBtnLoading(true);
     try {
-      const { data } = await axios.post("/api/user/register", { name, email, password });
+      const { data } = await axios.post(`${API_BASE_URL}/api/user/register`, { name, email, password }, { withCredentials: true });
       toast.success(data.message);
       const token=data.token
       setBtnLoading(false);
@@ -75,7 +77,7 @@ export const UserProvider = ({ children }) => {
   async function verify(token, otp,navigate, fetchPins) {
     setBtnLoading(true);
     try {
-      const { data } = await axios.post("/api/user/verifyOtp/"+token, {otp });
+      const { data } = await axios.post(`${API_BASE_URL}/api/user/verifyOtp/${token}`, {otp }, { withCredentials: true });
       toast.success(data.message);
       setUser(data.user);
       setIsAuth(true);
@@ -92,7 +94,7 @@ export const UserProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   async function fetchUser() {
     try {
-      const { data } = await axios.get("/api/user/me");
+      const { data } = await axios.get(`${API_BASE_URL}/api/user/me`, { withCredentials: true });
       setUser(data);
       setIsAuth(true);
       setLoading(false);
@@ -105,7 +107,7 @@ export const UserProvider = ({ children }) => {
   // Function to follow a user
   async function followUser(id, fetchUser) {
     try {
-      const { data } = await axios.post("/api/user/follow/" + id);
+      const { data } = await axios.post(`${API_BASE_URL}/api/user/follow/${id}`, {}, { withCredentials: true });
       toast.success(data.message);
     } catch (error) {
       toast.error(error.response.data.message);

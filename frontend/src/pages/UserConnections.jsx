@@ -15,6 +15,7 @@ import {
   Globe
 } from 'lucide-react';
 import AllUsersPopup from '../components/AllUsersPopup';
+import API_BASE_URL from '../config/api';
 
 const UserConnections = () => {
   const [userData, setUserData] = useState({ followers: [], following: [] });
@@ -33,7 +34,7 @@ const UserConnections = () => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await axios.get('/api/user/me');
+        const response = await axios.get(`${API_BASE_URL}/api/user/me`, { withCredentials: true });
         setCurrentUser(response.data);
       } catch (err) {
         console.error('Error fetching current user:', err);
@@ -47,7 +48,7 @@ const UserConnections = () => {
     const fetchUserConnections = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/user/get/${id}`);
+        const response = await axios.get(`${API_BASE_URL}/api/user/get/${id}`, { withCredentials: true });
         setUserData(response.data);
         setUserName(response.data.name || 'User');
         setError(null);
@@ -77,7 +78,7 @@ const UserConnections = () => {
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     
     try {
-      const response = await axios.post(`/api/user/follow/${userId}`);
+      const response = await axios.post(`${API_BASE_URL}/api/user/follow/${userId}`, {}, { withCredentials: true });
 
       const isFollowing = currentUser?.following?.includes(userId);
       

@@ -16,6 +16,7 @@ import {
   Share2,
   BookmarkPlus
 } from "lucide-react";
+import API_BASE_URL from "../config/api";
 
 const UserProfile = ({ user: loggedInUser }) => {
   const params = useParams();
@@ -33,7 +34,7 @@ const UserProfile = ({ user: loggedInUser }) => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await axios.get(`/api/user/${params.id}`);
+      const { data } = await axios.get(`${API_BASE_URL}/api/user/${params.id}`, { withCredentials: true });
       setUser(data);
       
       if (data.followers && loggedInUser && loggedInUser._id) {
