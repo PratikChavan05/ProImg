@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: proimg-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - proimg-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: proimg-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - proimg-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: proimg-auth-service
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URL=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - SESSION_SECRET=proimg-auth-secret-compose
+      - JWT_SEC=your-jwt-secret-compose
+      - REFRESH_TOKEN_SEC=your-refresh-secret-compose
+      - Cloud_Name=${Cloud_Name}
+      - Cloud_Api=${Cloud_Api}
+      - Cloud_Secret=${Cloud_Secret}
+      - MY_GMAIL=${MY_GMAIL}
+      - MY_PASS=${MY_PASS}
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - proimg-network
+
+  pin-service:
+    build:
+      context: .
+      dockerfile: services/pin-service/Dockerfile
+    container_name: proimg-pin-service
+    ports:
+      - "5002:5002"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URL=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - Cloud_Name=${Cloud_Name}
+      - Cloud_Api=${Cloud_Api}
+      - Cloud_Secret=${Cloud_Secret}
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - proimg-network
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: proimg-chat-service
+    ports:
+      - "5003:5003"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URL=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - proimg-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: proimg-notification-service
+    ports:
+      - "5006:5006"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URL=mongodb://mongodb:27017
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - CRON_FAST=true
+      - MY_GMAIL=${MY_GMAIL}
+      - MY_PASS=${MY_PASS}
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - proimg-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: proimg-gateway
+    ports:
+      - "5005:5005"
+    environment:
+      - NODE_ENV=development
+      - GATEWAY_PORT=5005
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - PIN_SERVICE_URL=http://pin-service:5002
+      - CHAT_SERVICE_URL=http://chat-service:5003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5006
+    depends_on:
+      - auth-service
+      - pin-service
+      - chat-service
+      - notification-service
+    networks:
+      - proimg-network
+
+networks:
+  proimg-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

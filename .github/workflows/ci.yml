@@ -1,0 +1,30 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-build:
+    name: Build & Verify Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Gateway Image
+        run: docker build -f services/gateway/Dockerfile -t proimg-gateway .
+
+      - name: Build Auth Service Image
+        run: docker build -f services/auth-service/Dockerfile -t proimg-auth-service .
+
+      - name: Build Pin Service Image
+        run: docker build -f services/pin-service/Dockerfile -t proimg-pin-service .
+
+      - name: Build Chat Service Image
+        run: docker build -f services/chat-service/Dockerfile -t proimg-chat-service .
+
+      - name: Build Notification Service Image
+        run: docker build -f services/notification-service/Dockerfile -t proimg-notification-service .

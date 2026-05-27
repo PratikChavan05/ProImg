@@ -1,0 +1,103 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-screen bg-paper pb-24 md:pb-8;
+  }
+
+  .page-container {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-stone-200/80 shadow-soft;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-lift hover:border-ocean-200/60;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-white border border-stone-200 text-ink placeholder-ink-faint
+      focus:outline-none focus:border-ocean-500 focus:ring-2 focus:ring-ocean-100 transition text-base;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white
+      bg-gradient-to-r from-ocean-600 to-fresh-600 hover:from-ocean-700 hover:to-fresh-700
+      shadow-soft hover:shadow-lift transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium
+      bg-white border border-stone-200 text-ink-soft hover:bg-paper-dark hover:border-stone-300 transition;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-ink-muted
+      hover:bg-paper-dark hover:text-ink transition;
+  }
+
+  .chip {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition;
+  }
+
+  .chip-active {
+    @apply chip bg-ocean-600 text-white shadow-soft;
+  }
+
+  .chip-inactive {
+    @apply chip bg-white text-ink-muted border border-stone-200 hover:border-ocean-300 hover:text-ocean-700;
+  }
+
+  .section-title {
+    @apply font-display text-2xl md:text-3xl font-bold text-ink tracking-tight;
+  }
+
+  .section-sub {
+    @apply text-ink-muted text-sm md:text-base mt-1;
+  }
+}
+
+/* Auth screens */
+.auth-screen {
+  @apply min-h-screen flex items-center justify-center p-4;
+  background: linear-gradient(160deg, #f0fdfa 0%, #f7f6f2 45%, #ecfdf5 100%);
+}
+
+.auth-card {
+  @apply w-full max-w-md card p-8 md:p-10;
+}
+
+.auth-brand {
+  @apply font-display text-3xl font-bold text-center bg-gradient-to-r from-ocean-700 to-fresh-700 bg-clip-text text-transparent;
+}
+
+.auth-title {
+  @apply text-xl font-semibold text-ink text-center mt-2 mb-6;
+}
+
+.auth-label {
+  @apply block text-sm font-medium text-ink-soft mb-1.5;
+}
+
+.auth-divider {
+  @apply relative my-6 text-center text-sm text-ink-faint before:absolute before:inset-y-1/2 before:left-0 before:w-full before:border-t before:border-stone-200;
+}
+
+.auth-divider span {
+  @apply relative bg-white px-3;
+}

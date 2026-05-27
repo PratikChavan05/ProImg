@@ -1,0 +1,20 @@
+{
+  "name": "proimg",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProImg microservices — see README.md for how to run locally",
+  "workspaces": [
+    "frontend",
+    "services/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix frontend",
+    "install:services": "npm install -w services/shared -w services/auth-service -w services/pin-service -w services/chat-service -w services/notification-service -w services/gateway",
+    "dev:notification": "npm run dev --prefix services/notification-service",
+    "install:all": "npm install",
+    "dev:all": "concurrently -n \"gateway,auth,pin,chat,notification,frontend\" -c \"red,green,blue,yellow,magenta,cyan\" \"npm run dev --prefix services/gateway\" \"npm run dev --prefix services/auth-service\" \"npm run dev --prefix services/pin-service\" \"npm run dev --prefix services/chat-service\" \"npm run dev --prefix services/notification-service\" \"npm run dev --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

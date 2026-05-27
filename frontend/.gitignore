@@ -1,0 +1,8 @@
+# Frontend-specific (root .gitignore covers shared rules)
+
+# Vite
+dist
+dist-ssr
+
+# Local env overrides (root also ignores .env*)
+*.local
