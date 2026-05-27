@@ -21,7 +21,7 @@ import {
 import { format, isToday, isYesterday, isThisWeek, isThisYear } from "date-fns";
 import AllUsersPopup from "../components/AllUsersPopup";
 import { useAuthStore } from "../store/authStore";
-import { getOrGenerateKeys, decryptMessage } from "../utils/e2ee";
+import { decryptMessage } from "../utils/e2ee";
 
 const Conversations = ({loggedUser}) => {
   const [conversations, setConversations] = useState([]);
@@ -49,25 +49,31 @@ const Conversations = ({loggedUser}) => {
       if (loggedUser?._id) {
         const myId = loggedUser._id.toString();
         try {
-          const localKeys = await getOrGenerateKeys(loggedUser._id);
-          if (localKeys?.privateKey) {
+          const privKeyName = `proimg-e2ee-priv-${myId}`;
+          const storedPriv = localStorage.getItem(privKeyName);
+          if (storedPriv) {
+            const privateKey = JSON.parse(storedPriv);
             decryptedList = await Promise.all(
               list.map(async (convo) => {
-                if (convo?.lastMessage?.content) {
+                if (convo?.lastMessage?.content && convo.lastMessage.content.startsWith("{")) {
                   const senderId = (convo.lastMessage.sender?._id ?? convo.lastMessage.sender)?.toString();
                   const isMine = senderId === myId;
-                  const decryptedContent = await decryptMessage(
-                    convo.lastMessage.content,
-                    localKeys.privateKey,
-                    isMine
-                  );
-                  return {
-                    ...convo,
-                    lastMessage: {
-                      ...convo.lastMessage,
-                      content: decryptedContent
-                    }
-                  };
+                  try {
+                    const decryptedContent = await decryptMessage(
+                      convo.lastMessage.content,
+                      privateKey,
+                      isMine
+                    );
+                    return {
+                      ...convo,
+                      lastMessage: {
+                        ...convo.lastMessage,
+                        content: decryptedContent
+                      }
+                    };
+                  } catch (e) {
+                    console.error("Failed to decrypt legacy conversation preview", e);
+                  }
                 }
                 return convo;
               })

@@ -6,7 +6,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { SOCKET_URL } from "../config/api";
 import customAxios from "../config/axios";
 import { toast } from "react-toastify";
-import { getOrGenerateKeys, syncPublicKeyWithServer, encryptMessage, decryptMessage } from "../utils/e2ee";
+import { decryptMessage } from "../utils/e2ee";
 
 const normalizeId = (id) => (id?._id ?? id)?.toString?.() ?? String(id);
 
@@ -49,20 +49,24 @@ const MessageChat = ({ currentUser }) => {
 
   useEffect(() => {
     if (!currentUser?._id) return;
-    const initKeys = async () => {
+    const loadExistingKeys = () => {
       try {
-        const localKeys = await getOrGenerateKeys(currentUser._id);
-        setKeys(localKeys);
-        
-        // Force-sync if database doesn't have public key yet
-        const force = !currentUser.publicKey;
-        await syncPublicKeyWithServer(currentUser._id, localKeys, force);
+        const pubKeyName = `proimg-e2ee-pub-${currentUser._id}`;
+        const privKeyName = `proimg-e2ee-priv-${currentUser._id}`;
+        const storedPub = localStorage.getItem(pubKeyName);
+        const storedPriv = localStorage.getItem(privKeyName);
+        if (storedPub && storedPriv) {
+          setKeys({
+            publicKey: JSON.parse(storedPub),
+            privateKey: JSON.parse(storedPriv)
+          });
+        }
       } catch (err) {
-        console.error("Failed to initialize E2EE keys", err);
+        console.error("Failed to load existing local keys", err);
       }
     };
-    initKeys();
-  }, [currentUser?._id, currentUser?.publicKey]);
+    loadExistingKeys();
+  }, [currentUser?._id]);
 
   useEffect(() => {
     if (!currentUser?._id) return;
@@ -94,8 +98,17 @@ const MessageChat = ({ currentUser }) => {
       if (!inThread) return;
 
       const isMine = senderId === myId;
-      const localKeys = await getOrGenerateKeys(myId);
-      const decryptedContent = await decryptMessage(message.content, localKeys?.privateKey, isMine);
+      let decryptedContent = message.content;
+      try {
+        const privKeyName = `proimg-e2ee-priv-${myId}`;
+        const storedPriv = localStorage.getItem(privKeyName);
+        if (storedPriv && message.content && message.content.startsWith("{")) {
+          const privateKey = JSON.parse(storedPriv);
+          decryptedContent = await decryptMessage(message.content, privateKey, isMine);
+        }
+      } catch (err) {
+        console.error("Failed to decrypt legacy received message", err);
+      }
       const decryptedMessage = { ...message, content: decryptedContent };
 
       setMessages((prev) => {
@@ -177,13 +190,22 @@ const MessageChat = ({ currentUser }) => {
         const msgRes = await customAxios.get(`/api/message/${userId}`);
         const rawList = (Array.isArray(msgRes.data) ? msgRes.data : []).map(normalizeMessage);
         
-        const localKeys = await getOrGenerateKeys(currentUser._id);
-        const decryptedList = [];
         const myId = normalizeId(currentUser._id);
+        const privKeyName = `proimg-e2ee-priv-${myId}`;
+        const storedPriv = localStorage.getItem(privKeyName);
+        const privateKey = storedPriv ? JSON.parse(storedPriv) : null;
         
+        const decryptedList = [];
         for (const msg of rawList) {
           const isMine = normalizeId(msg.sender?._id ?? msg.sender) === myId;
-          const decryptedContent = await decryptMessage(msg.content, localKeys?.privateKey, isMine);
+          let decryptedContent = msg.content;
+          if (privateKey && msg.content && msg.content.startsWith("{")) {
+            try {
+              decryptedContent = await decryptMessage(msg.content, privateKey, isMine);
+            } catch (err) {
+              console.error("Failed to decrypt legacy chat history message", err);
+            }
+          }
           decryptedList.push({ ...msg, content: decryptedContent });
         }
         
@@ -241,30 +263,12 @@ const MessageChat = ({ currentUser }) => {
     messageInputRef.current?.focus();
 
     try {
-      // Fetch the absolute freshest peer details from the server to get their public key in real-time
-      const freshUserRes = await customAxios.get(`/api/user/${userId}`);
-      if (freshUserRes.data) {
-        setUser(freshUserRes.data);
-      }
-      
-      const peerPublicKey = freshUserRes.data?.publicKey;
-      const localKeys = await getOrGenerateKeys(currentUser._id);
-      
-      let secureContent = text;
-      if (peerPublicKey && localKeys?.publicKey) {
-        secureContent = await encryptMessage(text, peerPublicKey, localKeys.publicKey);
-      } else {
-        console.warn("[E2EE] Peer public key or my public key is missing! Sending in plaintext.");
-      }
-
       const { data: saved } = await customAxios.post("/api/message/send", {
         receiverId: userId,
-        content: secureContent
+        content: text
       });
       
-      const normalized = normalizeMessage(saved);
-      const decryptedContent = await decryptMessage(normalized.content, localKeys?.privateKey, true);
-      const decryptedSaved = { ...normalized, content: decryptedContent };
+      const decryptedSaved = normalizeMessage(saved);
 
       setMessages((prev) => {
         const withoutDup = prev.filter(
@@ -313,12 +317,10 @@ const MessageChat = ({ currentUser }) => {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h1 className="font-semibold text-ink truncate">{user.name}</h1>
-                    {user.publicKey && (
-                      <span className="inline-flex items-center text-xs text-fresh-600 bg-fresh-50 px-1.5 py-0.5 rounded-full font-medium gap-0.5 border border-fresh-100 shadow-soft" title="End-to-End Encrypted">
-                        <Lock size={10} className="fill-fresh-600/10" />
-                        E2EE
-                      </span>
-                    )}
+                    <span className="inline-flex items-center text-xs text-fresh-600 bg-fresh-50 px-1.5 py-0.5 rounded-full font-medium gap-0.5 border border-fresh-100 shadow-soft" title="Messages are encrypted at rest on the server">
+                      <Lock size={10} className="fill-fresh-600/10" />
+                      Encrypted
+                    </span>
                   </div>
                   <p className="text-xs text-ink-muted">
                     {isTyping ? (

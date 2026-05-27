@@ -3,6 +3,7 @@ import { Message, UserReplica } from "../models/messageModel.js";
 import { isAuth, AppError, successResponse, mongoose, EVENTS } from "shared";
 import { emitMessage, serializeMessage } from "../lib/messagePayload.js";
 import { assertCanMessage } from "../lib/messagingAccess.js";
+import { encrypt, decrypt } from "../lib/crypto.js";
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.post("/send", isAuth, async (req, res, next) => {
     const newMessage = new Message({ 
       sender: senderId, 
       receiver: receiverId, 
-      content,
+      content: encrypt(content),
       read: false
     });
     
@@ -46,12 +47,16 @@ router.post("/send", isAuth, async (req, res, next) => {
       .populate("sender", "name email avatar")
       .populate("receiver", "name email avatar");
 
-    const io = req.app.get("io");
-    emitMessage(io, populatedMessage);
+    // Decrypt content for the real-time websocket emission and response
+    const decryptedMessage = populatedMessage.toObject();
+    decryptedMessage.content = decrypt(decryptedMessage.content);
 
-    let previewText = content || "";
+    const io = req.app.get("io");
+    emitMessage(io, decryptedMessage);
+
+    let previewText = decryptedMessage.content || "";
     try {
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(previewText);
       if (parsed && parsed.isEncrypted) {
         previewText = "🔒 End-to-End Encrypted Message";
       }
@@ -74,7 +79,7 @@ router.post("/send", isAuth, async (req, res, next) => {
       );
     }
 
-    return successResponse(res, serializeMessage(populatedMessage), "Message sent successfully", 201);
+    return successResponse(res, serializeMessage(decryptedMessage), "Message sent successfully", 201);
   } catch (error) {
     next(error);
   }
@@ -153,7 +158,15 @@ router.get("/conversations", isAuth, async (req, res, next) => {
       { $sort: { lastActivity: -1 } }
     ]);
 
-    return successResponse(res, conversations, "Conversations list retrieved successfully");
+    // Decrypt the lastMessage.content of each conversation
+    const decryptedConversations = conversations.map(convo => {
+      if (convo.lastMessage && convo.lastMessage.content) {
+        convo.lastMessage.content = decrypt(convo.lastMessage.content);
+      }
+      return convo;
+    });
+
+    return successResponse(res, decryptedConversations, "Conversations list retrieved successfully");
   } catch (error) {
     next(error);
   }
@@ -193,6 +206,13 @@ router.get("/:userId", isAuth, async (req, res, next) => {
       .populate("sender", "name email avatar")
       .populate("receiver", "name email avatar");
 
+    // Decrypt message contents for the client
+    const decryptedMessages = messages.map(msg => {
+      const m = msg.toObject();
+      m.content = decrypt(m.content);
+      return m;
+    });
+
     // Mark messages from other user to me as read
     const unreadMessages = await Message.updateMany(
       { sender: otherUserId, receiver: currentUserId, read: false },
@@ -206,7 +226,7 @@ router.get("/:userId", isAuth, async (req, res, next) => {
       }
     }
 
-    return successResponse(res, messages, "Chat history retrieved successfully");
+    return successResponse(res, decryptedMessages, "Chat history retrieved successfully");
   } catch (error) {
     next(error);
   }
