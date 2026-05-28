@@ -21,13 +21,17 @@ const Home = () => {
     setInputValue(query);
   }, [query]);
 
-  // Debounced search-as-you-type (300ms)
+  // Debounced search-as-you-type (400ms)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      if (inputValue.trim() !== query) {
-        setSearchParams(inputValue.trim() ? { q: inputValue.trim() } : {});
+      const trimmed = inputValue.trim();
+      if (trimmed !== query) {
+        // Only trigger search in URL if empty (to reset) or at least 2 characters long
+        if (trimmed === "" || trimmed.length >= 2) {
+          setSearchParams(trimmed ? { q: trimmed } : {});
+        }
       }
-    }, 300);
+    }, 400);
 
     return () => clearTimeout(delayDebounce);
   }, [inputValue, query, setSearchParams]);
@@ -41,16 +45,21 @@ const Home = () => {
 
   // Fetch search results if search query is present
   useEffect(() => {
-    if (!query) {
+    if (!query || query.trim().length < 2) {
       setSearchResults([]);
       return;
     }
+
+    const controller = new AbortController();
 
     const performSearch = async () => {
       setSearchLoading(true);
       setSearchError(null);
       try {
-        const response = await customAxios.get(`/api/search?q=${encodeURIComponent(query)}`);
+        const response = await customAxios.get(
+          `/api/search?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal }
+        );
         // Map Elasticsearch flat structure to expected Pin schema
         const mappedPins = (response.data || []).map(pin => ({
           ...pin,
@@ -61,14 +70,25 @@ const Home = () => {
         }));
         setSearchResults(mappedPins);
       } catch (err) {
+        if (customAxios.isCancel(err) || err.name === "CanceledError") {
+          // Request was aborted because a new query replaced it; do nothing
+          return;
+        }
         console.error("Search failed:", err);
         setSearchError("Could not complete the search. Please try again.");
       } finally {
-        setSearchLoading(false);
+        if (!controller.signal.aborted) {
+          setSearchLoading(false);
+        }
       }
     };
 
     performSearch();
+
+    // Cleanup: cancel pending request if query changes before resolving
+    return () => {
+      controller.abort();
+    };
   }, [query]);
 
   const handleFeedModeChange = (mode) => {
