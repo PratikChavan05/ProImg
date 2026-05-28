@@ -71,24 +71,26 @@ const Create = () => {
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="w-full py-16 px-6 flex flex-col items-center gap-3 border-2 border-dashed border-stone-200 hover:border-ocean-300 hover:bg-ocean-50/50 transition rounded-2xl m-4"
-              >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={changeFileHandler}
-                />
-                <div className="w-14 h-14 rounded-2xl bg-ocean-100 text-ocean-700 flex items-center justify-center">
-                  <Upload size={28} />
-                </div>
-                <span className="font-medium text-ink">Tap to upload</span>
-                <span className="text-sm text-ink-muted">JPG, PNG, MP4, or MOV</span>
-              </button>
+              <div className="p-4">
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="w-full py-16 px-6 flex flex-col items-center gap-3 border-2 border-dashed border-stone-200 hover:border-ocean-300 hover:bg-ocean-50/50 transition rounded-2xl"
+                >
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={changeFileHandler}
+                  />
+                  <div className="w-14 h-14 rounded-2xl bg-ocean-100 text-ocean-700 flex items-center justify-center">
+                    <Upload size={28} />
+                  </div>
+                  <span className="font-medium text-ink">Tap to upload</span>
+                  <span className="text-sm text-ink-muted">JPG, PNG, MP4, or MOV</span>
+                </button>
+              </div>
             )}
           </div>
 
