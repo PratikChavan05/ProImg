@@ -1,19 +1,22 @@
 import cloudinary from "cloudinary";
+import fs from "fs";
 import { Pin, UserReplica } from "../models/pinModel.js";
-import getDataUrl from "../utils/urlGenerator.js";
 import { AppError, successResponse } from "shared";
 import { canViewOwnerContent } from "../lib/privacy.js";
 import { notifyPinOwner } from "../lib/notify.js";
 
 const ownerIdStr = (owner) => (owner?._id || owner)?.toString();
 
-// Create a new Pin
+// Create a new Pin (Memory-Safe Disk Uploading)
 export const createPin = async (req, res, next) => {
+  const file = req.file;
   try {
     const { title, pin } = req.body;
-    const file = req.file;
 
     if (!title || !pin) {
+      if (file && file.path) {
+        try { await fs.promises.unlink(file.path); } catch (e) {}
+      }
       throw new AppError("Title and pin description are required", 400);
     }
 
@@ -21,23 +24,30 @@ export const createPin = async (req, res, next) => {
       throw new AppError("Media file is required.", 400);
     }
 
-    const fileUrl = getDataUrl(file);
     let cloud;
     let resourceType;
 
     if (file.mimetype.startsWith("image")) {
-      cloud = await cloudinary.v2.uploader.upload(fileUrl.content, {
+      cloud = await cloudinary.v2.uploader.upload(file.path, {
         folder: "proimg/pins"
       });
       resourceType = "image";
     } else if (file.mimetype.startsWith("video")) {
-      cloud = await cloudinary.v2.uploader.upload(fileUrl.content, {
+      cloud = await cloudinary.v2.uploader.upload(file.path, {
         resource_type: "video",
         folder: "proimg/pins"
       });
       resourceType = "video";
     } else {
+      if (file.path) {
+        try { await fs.promises.unlink(file.path); } catch (e) {}
+      }
       throw new AppError("Unsupported file type. Please upload an image or video.", 400);
+    }
+
+    // Clean up temporary file from disk immediately
+    if (file.path) {
+      try { await fs.promises.unlink(file.path); } catch (e) {}
     }
 
     const newPin = await Pin.create({
@@ -61,6 +71,9 @@ export const createPin = async (req, res, next) => {
 
     return successResponse(res, newPin, "Pin created successfully", 201);
   } catch (err) {
+    if (file && file.path) {
+      try { await fs.promises.unlink(file.path); } catch (e) {}
+    }
     next(err);
   }
 };

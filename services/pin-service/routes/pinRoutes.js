@@ -20,8 +20,23 @@ import {
 
 const router = express.Router();
 
-// Configure Multer memory storage for direct Cloudinary streaming
-const storage = multer.memoryStorage();
+import fs from "fs";
+
+// Ensure upload directory exists locally
+if (!fs.existsSync("./uploads")) {
+  fs.mkdirSync("./uploads");
+}
+
+// Configure Multer disk storage for memory-safe direct streaming
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./uploads");
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + "-" + file.originalname);
+  }
+});
 const uploadFile = multer({ storage }).single("file");
 
 router.post("/new", isAuth, uploadFile, createPin);
