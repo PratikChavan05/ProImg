@@ -72,7 +72,7 @@ const NotificationBell = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(100vw-2rem,380px)] card shadow-lift z-50 overflow-hidden">
+        <div className="absolute right-[-150px] sm:right-0 mt-2 w-[min(100vw-2rem,380px)] card shadow-lift z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
             <h2 className="font-semibold text-ink">Notifications</h2>
             <div className="flex items-center gap-1">
