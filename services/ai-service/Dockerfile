@@ -11,11 +11,11 @@ RUN npm install
 
 # Copy service code
 WORKDIR /usr/src/app
-COPY services/search-service ./services/search-service
+COPY services/ai-service ./services/ai-service
 
-# Install search-service dependencies
-WORKDIR /usr/src/app/services/search-service
+# Install ai-service dependencies
+WORKDIR /usr/src/app/services/ai-service
 RUN npm install
 
-EXPOSE 5007
+EXPOSE 5008
 CMD ["npm", "start"]

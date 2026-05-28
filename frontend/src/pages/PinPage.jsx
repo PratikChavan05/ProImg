@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PinData } from "../context/PinContext";
+import customAxios from "../config/axios";
+import PinCard from "../components/PinCard";
 import {
   Trash2,
   Edit,
@@ -85,43 +87,36 @@ const PinPage = ({ user }) => {
     if (pin) {
       setTitle(pin.title || "");
       setPinValue(pin.pin || "");
-
-      const mockRelatedPins = [
-        {
-          _id: "related1",
-          title: "Similar Design Inspiration",
-          media: {
-            url: "https://via.placeholder.com/300",
-            type: "image",
-          },
-          likes: ["user1", "user2"],
-          owner: { name: "Designer Pro" },
-        },
-        {
-          _id: "related2",
-          title: "Related Creative Work",
-          media: {
-            url: "https://via.placeholder.com/300/500/0000FF",
-            type: "image",
-          },
-          likes: ["user1"],
-          owner: { name: "Creative Mind" },
-        },
-        {
-          _id: "related3",
-          title: "More Like This",
-          media: {
-            url: "https://via.placeholder.com/300/FF0000/FFFFFF",
-            type: "image",
-          },
-          likes: ["user3", "user4", "user5"],
-          owner: { name: "Inspiration Hub" },
-        },
-      ];
-
-      setRelatedPins(mockRelatedPins);
     }
   }, [pin]);
+
+  useEffect(() => {
+    const fetchSimilarPins = async () => {
+      if (params.id) {
+        try {
+          const { data } = await customAxios.get(`/api/pin/${params.id}/similar`);
+          // Map Elasticsearch flat structure to expected Pin media schema
+          const mappedPins = (Array.isArray(data) ? data : []).map(pin => {
+            if (pin.mediaUrl && !pin.media) {
+              return {
+                ...pin,
+                media: {
+                  url: pin.mediaUrl,
+                  type: pin.mediaType || "image"
+                }
+              };
+            }
+            return pin;
+          });
+          setRelatedPins(mappedPins);
+        } catch (err) {
+          console.error("Error fetching visually similar pins:", err);
+          setRelatedPins([]);
+        }
+      }
+    };
+    fetchSimilarPins();
+  }, [params.id]);
 
   const editHandler = () => {
     setEdit(!edit);
@@ -263,21 +258,38 @@ const PinPage = ({ user }) => {
 
         <div className="card overflow-hidden">
           <div className="flex flex-col lg:flex-row">
-            <div className="w-full lg:w-3/5 bg-paper-100 relative flex items-center justify-center min-h-[320px] lg:min-h-[480px]">
+            <div className="w-full lg:w-3/5 bg-stone-950 relative flex items-center justify-center min-h-[320px] lg:min-h-[520px] overflow-hidden group">
               {pin.media && pin.media.url ? (
                 <>
+                  {/* Premium blurred color-matched background ambient glow */}
+                  {pin.media.type === "image" ? (
+                    <img
+                      src={pin.media.url}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 select-none pointer-events-none scale-105"
+                    />
+                  ) : (
+                    <video
+                      src={pin.media.url}
+                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 select-none pointer-events-none scale-105"
+                      muted
+                      playsInline
+                    />
+                  )}
+
+                  {/* Sharp sharp-focus foreground media */}
                   {pin.media.type === "image" ? (
                     <img
                       src={pin.media.url}
                       alt={pin.title || "Pin image"}
-                      className="w-full h-full object-contain lg:max-h-[80vh] cursor-zoom-in"
+                      className="relative z-10 max-w-full max-h-[75vh] object-contain cursor-zoom-in transition duration-300 hover:scale-[1.01]"
                       onClick={() => setShowMediaModal(true)}
                     />
                   ) : (
                     <video
                       src={pin.media.url}
                       controls
-                      className="w-full h-full object-contain lg:max-h-[80vh] cursor-zoom-in"
+                      className="relative z-10 max-w-full max-h-[75vh] object-contain cursor-zoom-in"
                       onClick={() => setShowMediaModal(true)}
                     />
                   )}
@@ -417,6 +429,33 @@ const PinPage = ({ user }) => {
                 )}
               </div>
 
+              {/* AI Alt-Text Accessibility Caption */}
+              {pin.altText && (
+                <div className="mb-5 p-3.5 rounded-xl bg-paper-100/50 border border-paper-200 text-sm text-ink-muted leading-relaxed">
+                  <span className="font-semibold text-ink text-xs block uppercase tracking-wider mb-1">Caption</span>
+                  "{pin.altText}"
+                </div>
+              )}
+
+              {/* AI Generated Tags */}
+              {Array.isArray(pin.tags) && pin.tags.length > 0 && (
+                <div className="mb-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {pin.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => navigate(`/?q=${encodeURIComponent(tag)}`)}
+                        className="px-3 py-1 rounded-full bg-paper-100 text-xs font-medium text-ink-muted hover:bg-paper-200 hover:text-ink transition shadow-soft"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-3 text-sm text-ink-muted mb-5 py-3 px-4 rounded-xl bg-paper-100">
                 {formattedDate && (
                   <>
@@ -553,6 +592,23 @@ const PinPage = ({ user }) => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* More Like This (Visually Similar KNN Recommendations) */}
+        <div className="mt-12">
+          <h2 className="section-title !text-xl mb-6">More Like This (Visually Similar)</h2>
+          {relatedPins.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {relatedPins.map((rPin) => (
+                <PinCard key={rPin._id} pin={rPin} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-ink-muted bg-paper-100 rounded-2xl border border-dashed border-paper-300">
+              <p className="font-medium text-ink">No visual recommendations available</p>
+              <p className="text-sm mt-1 text-ink-faint">Try creating more pins or wait for Gemini to finish analyzing media.</p>
+            </div>
+          )}
         </div>
       </div>
 

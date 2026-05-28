@@ -49,7 +49,10 @@ function normalizeEnv() {
     "Cloud_Api",
     "Cloud_Secret",
     "RAZORPAY_KEY_ID",
-    "RAZORPAY_KEY_SECRET"
+    "RAZORPAY_KEY_SECRET",
+    "GEMINI_API_KEY",
+    "ELASTICSEARCH_URL",
+    "ELASTICSEARCH_API_KEY"
   ];
 
   for (const key of keys) {
@@ -112,7 +115,8 @@ export function servicePort(serviceDir, fallback) {
     "pin-service": "PIN_PORT",
     "chat-service": "CHAT_PORT",
     "notification-service": "NOTIFICATION_PORT",
-    "search-service": "SEARCH_PORT"
+    "search-service": "SEARCH_PORT",
+    "ai-service": "AI_PORT"
   };
   const key = map[serviceDir];
   if (key && process.env[key]) {

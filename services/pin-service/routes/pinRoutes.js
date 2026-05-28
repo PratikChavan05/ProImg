@@ -11,6 +11,7 @@ import {
   getFeedPins,
   getPinsByUser,
   getLikes,
+  getSimilarPins,
   getSinglePin,
   getViews,
   likeAndUnlike,
@@ -53,5 +54,6 @@ router.get("/likes/:id", isAuth, getLikes);
 router.get("/liked/:id", isAuth, myLikes);
 router.post("/view", isAuth, countViews);
 router.get("/getView/:id", isAuth, getViews);
+router.get("/:id/similar", isAuth, getSimilarPins);
 
 export default router;

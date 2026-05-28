@@ -25,13 +25,15 @@ export const initElasticsearch = async (logger) => {
       await esClient.ping();
       logger.info("Elasticsearch ping successful.");
 
-      // Check if "pins" index exists and migrate if it has old mappings
+      // Check if "pins" index exists and migrate if it lacks embedding_vector
       const exists = await esClient.indices.exists({ index: "pins" });
       if (exists) {
         const mapping = await esClient.indices.getMapping({ index: "pins" });
-        const type = mapping.pins?.mappings?.properties?.title?.type;
-        if (type === "text") {
-          logger.info("Migrating index 'pins' to search_as_you_type...");
+        // Under different environments, index name could be different or structure nested differently
+        const indexKey = Object.keys(mapping)[0] || "pins";
+        const properties = mapping[indexKey]?.mappings?.properties;
+        if (!properties?.embedding_vector) {
+          logger.info("Migrating index 'pins' to support dense_vector embeddings...");
           await esClient.indices.delete({ index: "pins" });
         }
       }
@@ -39,18 +41,32 @@ export const initElasticsearch = async (logger) => {
       // Check existence again (in case it was deleted by the migration logic)
       const indexStillExists = await esClient.indices.exists({ index: "pins" });
       if (!indexStillExists) {
-        logger.info("Creating index 'pins' with search_as_you_type capabilities...");
+        logger.info("Creating index 'pins' with search_as_you_type and dense_vector capabilities...");
         await esClient.indices.create({
           index: "pins",
           body: {
+            settings: {
+              index: {
+                mapping: {
+                  exclude_source_vectors: false
+                }
+              }
+            },
             mappings: {
               properties: {
                 title: { type: "search_as_you_type" },
                 pin: { type: "search_as_you_type" },
+                tags: { type: "keyword" },
                 ownerId: { type: "keyword" },
                 mediaUrl: { type: "keyword", index: false },
                 mediaType: { type: "keyword", index: false },
-                createdAt: { type: "date" }
+                createdAt: { type: "date" },
+                embedding_vector: {
+                  type: "dense_vector",
+                  dims: 768,
+                  index: true,
+                  similarity: "cosine"
+                }
               }
             }
           }

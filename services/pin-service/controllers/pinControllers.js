@@ -496,3 +496,34 @@ export const myLikes = async (req, res, next) => {
     next(err);
   }
 };
+
+// Get Similar Pins via AI Service KNN Vector Search
+export const getSimilarPins = async (req, res, next) => {
+  try {
+    const pinId = req.params.id;
+    const pin = await Pin.findById(pinId);
+
+    if (!pin) {
+      throw new AppError("Pin not found", 404);
+    }
+
+    // Call the ai-service's internal similarity endpoint
+    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:5008";
+    const response = await fetch(`${aiServiceUrl}/api/search/similar/${pinId}`);
+
+    if (!response.ok) {
+      req.logger.warn(`AI similarity search returned ${response.status} for pin ${pinId}`);
+      return successResponse(res, [], "No similar pins available");
+    }
+
+    const result = await response.json();
+    return successResponse(res, result.data || [], "Similar pins retrieved successfully");
+  } catch (err) {
+    // Graceful degradation — if ai-service is down, return empty
+    if (err.code === "ECONNREFUSED" || err.name === "TypeError") {
+      req.logger.warn("AI service unavailable for similarity search", { error: err.message });
+      return successResponse(res, [], "Similar pins service temporarily unavailable");
+    }
+    next(err);
+  }
+};

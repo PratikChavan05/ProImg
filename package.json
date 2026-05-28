@@ -9,14 +9,17 @@
   ],
   "scripts": {
     "dev:frontend": "npm run dev --prefix frontend",
-    "install:services": "npm install -w services/shared -w services/auth-service -w services/pin-service -w services/chat-service -w services/notification-service -w services/gateway -w services/search-service",
+    "install:services": "npm install -w services/shared -w services/auth-service -w services/pin-service -w services/chat-service -w services/notification-service -w services/gateway -w services/ai-service",
     "dev:notification": "npm run dev --prefix services/notification-service",
-    "dev:search": "npm run dev --prefix services/search-service",
+    "dev:ai": "npm run dev --prefix services/ai-service",
     "install:all": "npm install",
     "sync-pins": "node scratch/sync-pins.mjs",
-    "dev:all": "concurrently -n \"gateway,auth,pin,chat,notification,search,frontend\" -c \"red,green,blue,yellow,magenta,gray,cyan\" \"npm run dev --prefix services/gateway\" \"npm run dev --prefix services/auth-service\" \"npm run dev --prefix services/pin-service\" \"npm run dev --prefix services/chat-service\" \"npm run dev --prefix services/notification-service\" \"npm run dev --prefix services/search-service\" \"npm run dev --prefix frontend\""
+    "dev:all": "concurrently -n \"gateway,auth,pin,chat,notification,ai,frontend\" -c \"red,green,blue,yellow,magenta,gray,cyan\" \"npm run dev --prefix services/gateway\" \"npm run dev --prefix services/auth-service\" \"npm run dev --prefix services/pin-service\" \"npm run dev --prefix services/chat-service\" \"npm run dev --prefix services/notification-service\" \"npm run dev --prefix services/ai-service\" \"npm run dev --prefix frontend\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.60.4"
   }
 }

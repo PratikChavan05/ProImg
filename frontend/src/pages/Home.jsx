@@ -200,11 +200,9 @@ const Home = () => {
             <p className="text-red-600 font-medium">{searchError}</p>
           </div>
         ) : filteredPins.length > 0 ? (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredPins.map((pin) => (
-              <div key={pin._id} className="break-inside-avoid">
-                <PinCard pin={pin} />
-              </div>
+              <PinCard key={pin._id} pin={pin} />
             ))}
           </div>
         ) : (

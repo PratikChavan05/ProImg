@@ -1,7 +1,7 @@
 {
-  "name": "search-service",
+  "name": "ai-service",
   "version": "1.0.0",
-  "description": "Full-text Elasticsearch search microservice for ProImg",
+  "description": "AI enrichment and search microservice for ProImg — Gemini auto-tagging, vector embeddings, and Elasticsearch search",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.13.0",
+    "@google/genai": "^1.0.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

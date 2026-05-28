@@ -24,6 +24,8 @@ const pinSchema = new mongoose.Schema(
         required: true,
       },
     },
+    tags: [{ type: String }],
+    altText: { type: String, default: "" },
     comments: [
       {
         user: {

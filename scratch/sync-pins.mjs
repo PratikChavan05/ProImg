@@ -3,6 +3,7 @@ import { Client } from "@elastic/elasticsearch";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { generateTagsAndCaption, generateImageEmbedding } from "../services/ai-service/lib/gemini.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../.env") });
@@ -45,22 +46,63 @@ try {
   const pins = await Pin.find({});
   console.log(`Found ${pins.length} pins.`);
 
-  console.log("Syncing to Elasticsearch...");
+  console.log("Syncing to Elasticsearch with AI Enrichment...");
   for (const pin of pins) {
     const pinObj = pin.toObject();
+    const pinId = pinObj._id.toString();
+    const mediaUrl = pinObj.media?.url || "";
+    const mediaType = pinObj.media?.type || "image";
+
+    let tags = pinObj.tags || [];
+    let altText = pinObj.altText || "";
+    let embeddingVector = null;
+
+    // Call Gemini to enrich pins if tags are empty
+    if (process.env.GEMINI_API_KEY && mediaUrl && (!tags || tags.length === 0)) {
+      try {
+        console.log(`Enriching Pin "${pinObj.title}" via Gemini Multimodal...`);
+        const enrichment = await generateTagsAndCaption(mediaUrl, mediaType);
+        tags = enrichment.tags || [];
+        altText = enrichment.altText || "";
+
+        // Save back to MongoDB
+        await Pin.findByIdAndUpdate(pinId, { tags, altText });
+        console.log(`Updated MongoDB for Pin "${pinObj.title}" with tags: [${tags.join(", ")}]`);
+      } catch (aiErr) {
+        console.error(`AI enrichment failed for Pin "${pinObj.title}":`, aiErr.message);
+      }
+    }
+
+    // Generate embedding for ES if it's an image
+    if (process.env.GEMINI_API_KEY && mediaUrl && mediaType === "image") {
+      try {
+        console.log(`Generating embedding for Pin "${pinObj.title}"...`);
+        embeddingVector = await generateImageEmbedding(mediaUrl);
+      } catch (embErr) {
+        console.error(`Embedding generation failed for Pin "${pinObj.title}":`, embErr.message);
+      }
+    }
+
+    const doc = {
+      title: pinObj.title || "",
+      pin: pinObj.pin || "",
+      tags: tags,
+      ownerId: (pinObj.owner || "").toString(),
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+      createdAt: pinObj.createdAt || new Date().toISOString()
+    };
+
+    if (embeddingVector) {
+      doc.embedding_vector = embeddingVector;
+    }
+
     await esClient.index({
       index: "pins",
-      id: pinObj._id.toString(),
-      body: {
-        title: pinObj.title || "",
-        pin: pinObj.pin || "",
-        ownerId: (pinObj.owner || "").toString(),
-        mediaUrl: pinObj.media?.url || "",
-        mediaType: pinObj.media?.type || "image",
-        createdAt: pinObj.createdAt || new Date().toISOString()
-      }
+      id: pinId,
+      body: doc
     });
-    console.log(`Synced Pin: "${pinObj.title}" (${pinObj._id})`);
+    console.log(`Synced Pin: "${pinObj.title}" (${pinId})`);
   }
 
   console.log("\n🚀 Sync completed successfully! All pins are now searchable.");

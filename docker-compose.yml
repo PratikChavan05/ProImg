@@ -116,13 +116,13 @@ services:
       - PIN_SERVICE_URL=http://pin-service:5002
       - CHAT_SERVICE_URL=http://chat-service:5003
       - NOTIFICATION_SERVICE_URL=http://notification-service:5006
-      - SEARCH_SERVICE_URL=http://search-service:5007
+      - AI_SERVICE_URL=http://ai-service:5008
     depends_on:
       - auth-service
       - pin-service
       - chat-service
       - notification-service
-      - search-service
+      - ai-service
     networks:
       - proimg-network
 
@@ -141,17 +141,18 @@ services:
     networks:
       - proimg-network
 
-  search-service:
+  ai-service:
     build:
       context: .
-      dockerfile: services/search-service/Dockerfile
-    container_name: proimg-search-service
+      dockerfile: services/ai-service/Dockerfile
+    container_name: proimg-ai-service
     ports:
-      - "5007:5007"
+      - "5008:5008"
     environment:
       - NODE_ENV=development
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - elasticsearch
       - rabbitmq

@@ -2,7 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cloudinary from "cloudinary";
 import pinRoutes from "./routes/pinRoutes.js";
-import { handleUserEvents } from "./events/eventHandlers.js";
+import { handleUserEvents, handleEnrichmentEvents } from "./events/eventHandlers.js";
 import {
   createLogger,
   connectDatabase,
@@ -48,6 +48,13 @@ await rabbitClient.subscribe(
   "pin-service-user-events-queue",
   ["user.registered", "user.updated", "user.deleted"],
   handleUserEvents
+);
+
+// Subscribe to AI enrichment events (tags + alt-text from ai-service)
+await rabbitClient.subscribe(
+  "pin-service-enrichment-queue",
+  ["pin.enriched"],
+  handleEnrichmentEvents
 );
 
 // Inject clients into request context

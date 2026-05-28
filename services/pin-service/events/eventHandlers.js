@@ -68,3 +68,39 @@ export const handleUserEvents = async (payload, routingKey) => {
       logger.warn(`[Pin Service] Unhandled routing key in user events queue: ${routingKey}`);
   }
 };
+
+/**
+ * Handles AI enrichment events from the ai-service.
+ * Updates pins with AI-generated tags and alt-text.
+ */
+export const handleEnrichmentEvents = async (payload, routingKey) => {
+  const { data } = payload;
+  const correlationId = payload.correlationId || "unknown";
+
+  if (routingKey === "pin.enriched") {
+    if (!data || !data.id) {
+      logger.warn(`[Pin Service] Received pin.enriched event without ID. CorrelationID: ${correlationId}`);
+      return;
+    }
+
+    try {
+      const updateFields = {};
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        updateFields.tags = data.tags;
+      }
+      if (data.altText) {
+        updateFields.altText = data.altText;
+      }
+
+      if (Object.keys(updateFields).length > 0) {
+        await Pin.findByIdAndUpdate(data.id, updateFields);
+        logger.info(`[Pin Service] Enriched pin ${data.id} with AI metadata. Tags: ${(updateFields.tags || []).length}, AltText: ${updateFields.altText ? "yes" : "no"}`);
+      }
+    } catch (err) {
+      logger.error(`[Pin Service] Failed to apply enrichment for pin ${data.id}`, { error: err.message });
+      throw err;
+    }
+  } else {
+    logger.warn(`[Pin Service] Unhandled routing key in enrichment queue: ${routingKey}`);
+  }
+};

@@ -67,32 +67,7 @@ const PinCard = ({ pin }) => {
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-100">
-          {ownerId ? (
-            <Link
-              to={`/user/${ownerId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 min-w-0 hover:opacity-80"
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${
-                typeof owner === "object" && owner?.isPremium
-                  ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-2 ring-amber-400"
-                  : "bg-gradient-to-br from-ocean-400 to-fresh-500"
-              }`}>
-                {ownerName?.slice(0, 1).toUpperCase() || "?"}
-              </div>
-              <span className="text-sm text-ink-soft truncate flex items-center gap-1">
-                {ownerName || "Creator"}
-                {typeof owner === "object" && owner?.isPremium && (
-                  <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                )}
-              </span>
-            </Link>
-          ) : (
-            <span className="text-sm text-ink-faint">Unknown</span>
-          )}
+        <div className="flex justify-end mt-4 pt-3 border-t border-stone-100">
           <div className="flex gap-3 text-xs text-ink-muted shrink-0">
             <span className="flex items-center gap-1">
               <Heart size={14} className="text-fresh-600" />
