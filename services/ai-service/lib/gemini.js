@@ -13,15 +13,68 @@ const getAiClient = () => {
   return aiClient;
 };
 
-// Download image or video helper
+// Download image or video helper with 12s timeout and 25MB safety caps
 async function downloadMedia(url) {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to download media: ${res.statusText}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12-second timeout limit
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`Failed to download media: ${res.statusText}`);
+    }
+
+    // 1. Content-Length Header check (pre-download check)
+    const contentLength = res.headers.get("content-length");
+    if (contentLength) {
+      const sizeBytes = parseInt(contentLength, 10);
+      if (sizeBytes > 25 * 1024 * 1024) {
+        throw new Error(`Media size exceeds the 25MB limit (${(sizeBytes / 1024 / 1024).toFixed(1)}MB)`);
+      }
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+
+    // 2. Buffer Byte-Length check (post-download verification)
+    if (arrayBuffer.byteLength > 25 * 1024 * 1024) {
+      throw new Error(`Media size exceeds the 25MB limit (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB)`);
+    }
+
+    const buffer = Buffer.from(arrayBuffer);
+    return buffer;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new Error("Media download timed out after 12 seconds");
+    }
+    throw err;
   }
-  const arrayBuffer = await res.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  return buffer;
+}
+
+// Exponential back-off retry helper for Gemini API 429 quota limits
+async function withRetry(fn, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const errStr = (err.message || "").toLowerCase();
+      const is429 = err.status === 429 || 
+                    errStr.includes("429") || 
+                    errStr.includes("quota") || 
+                    errStr.includes("rate limit") || 
+                    errStr.includes("too many requests");
+      
+      if (is429 && i < retries - 1) {
+        const backoff = delay * Math.pow(2, i);
+        console.warn(`[AI-Service] Gemini API 429 Rate Limit hit. Retrying in ${backoff}ms (Attempt ${i + 1}/${retries})...`);
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 // Map common extensions or extract content type
@@ -62,24 +115,26 @@ export const generateTagsAndCaption = async (mediaUrl, mediaType) => {
     required: ["tags", "altText"]
   };
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: [
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data
+  const response = await withRetry(() => 
+    client.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data
+          }
+        },
+        {
+          text: "Analyze this media and generate descriptive tags and a concise altText caption for accessibility."
         }
-      },
-      {
-        text: "Analyze this media and generate descriptive tags and a concise altText caption for accessibility."
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema
       }
-    ],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema
-    }
-  });
+    })
+  );
 
   try {
     const data = JSON.parse(response.text);
@@ -98,20 +153,22 @@ export const generateImageEmbedding = async (mediaUrl) => {
   const base64Data = buffer.toString("base64");
   const mimeType = getMimeType(mediaUrl, "image/jpeg");
 
-  const result = await client.models.embedContent({
-    model: "gemini-embedding-2",
-    contents: [
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data
+  const result = await withRetry(() => 
+    client.models.embedContent({
+      model: "gemini-embedding-2",
+      contents: [
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data
+          }
         }
+      ],
+      config: {
+        outputDimensionality: 768
       }
-    ],
-    config: {
-      outputDimensionality: 768
-    }
-  });
+    })
+  );
 
   const values = result.embeddings?.[0]?.values;
   if (!values) {

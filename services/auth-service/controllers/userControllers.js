@@ -814,29 +814,56 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-// Publish all users to RabbitMQ so pin/chat services sync replicas (run once after deploy)
+// Publish all users to RabbitMQ so pin/chat services sync replicas (runs in background to prevent OOM/timeouts)
 export const syncUserReplicas = async (req, res, next) => {
   try {
-    const users = await User.find().select("name email following followers isPrivate isPremium");
-    for (const user of users) {
-      await req.rabbitClient.publish(
-        "user.registered",
-        {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          following: user.following || [],
-          followers: user.followers || [],
-          isPrivate: Boolean(user.isPrivate),
-          isPremium: Boolean(user.isPremium)
-        },
-        req.correlationId
-      );
-    }
+    const totalUsers = await User.countDocuments();
+
+    // Capture context variables for the background execution safely
+    const rabbitClient = req.rabbitClient;
+    const correlationId = req.correlationId;
+    const logger = req.logger || console;
+
+    // Hand off processing to background queue immediately so HTTP response is returned instantly
+    setImmediate(async () => {
+      logger.info(`Starting background user replica synchronization for ${totalUsers} users...`);
+      let count = 0;
+      try {
+        const cursor = User.find()
+          .select("name email following followers isPrivate isPremium")
+          .cursor({ batchSize: 500 });
+
+        for (let user = await cursor.next(); user != null; user = await cursor.next()) {
+          await rabbitClient.publish(
+            "user.registered",
+            {
+              id: user._id,
+              name: user.name,
+              email: user.email,
+              following: user.following || [],
+              followers: user.followers || [],
+              isPrivate: Boolean(user.isPrivate),
+              isPremium: Boolean(user.isPremium)
+            },
+            correlationId
+          );
+          count++;
+
+          // Log progress every 5000 users for operations visibility
+          if (count % 5000 === 0) {
+            logger.info(`User sync progress: ${count}/${totalUsers} published.`);
+          }
+        }
+        logger.info(`Completed background user replica synchronization successfully. Synced ${count} users.`);
+      } catch (err) {
+        logger.error("Error occurred during background user replica sync loop", { error: err.message, stack: err.stack });
+      }
+    });
+
     return successResponse(
       res,
-      { count: users.length },
-      `Synced ${users.length} users to message bus`
+      { status: "processing", total: totalUsers },
+      "User replica synchronization initiated in the background"
     );
   } catch (err) {
     next(err);
