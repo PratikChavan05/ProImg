@@ -203,13 +203,22 @@ const UserProfile = ({ user: loggedInUser }) => {
           Back
         </button>
 
-        <div className="card p-6 md:p-8 mb-8">
+        <div className="card p-6 md:p-8 mb-8 overflow-hidden relative">
+          {user.isPremium && (
+            <div className="absolute top-0 right-0 bg-amber-500 text-white font-semibold text-[10px] px-8 py-1.5 uppercase tracking-widest rotate-45 translate-x-7 translate-y-3 shadow-soft select-none">
+              Pro
+            </div>
+          )}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-ocean-400 to-fresh-500 flex items-center justify-center shrink-0 shadow-lift overflow-hidden relative">
+            <div className={`w-28 h-28 rounded-2xl flex items-center justify-center shrink-0 shadow-lift overflow-hidden relative ${
+              user.isPremium
+                ? "bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 ring-4 ring-amber-400/60 ring-offset-2"
+                : "bg-gradient-to-br from-ocean-400 to-fresh-500"
+            }`}>
               {user.profilePicture ? (
                 <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl font-bold text-white">
+                <span className="text-4xl font-bold text-white relative">
                   {user.name?.slice(0, 1).toUpperCase() || "?"}
                 </span>
               )}
@@ -221,8 +230,16 @@ const UserProfile = ({ user: loggedInUser }) => {
             </div>
 
             <div className="flex-1 text-center md:text-left min-w-0">
-              <h1 className="section-title capitalize flex items-center justify-center md:justify-start gap-2">
+              <h1 className="section-title capitalize flex flex-wrap items-center justify-center md:justify-start gap-2.5">
                 {user.name || "Unknown user"}
+                {user.isPremium && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shadow-soft">
+                    <svg className="w-3.5 h-3.5 text-amber-600 shrink-0 fill-amber-600/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    Pro
+                  </span>
+                )}
                 {user.isPrivate && (
                   <span className="text-xs font-sans font-medium px-2 py-0.5 rounded-full bg-paper-100 text-ink-muted border border-paper-200">
                     Private

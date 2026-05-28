@@ -85,7 +85,7 @@ router.post("/send", isAuth, async (req, res, next) => {
   }
 });
 
-// Retrieve Active Conversations List
+// Retrieve Active Conversations List (Memory-Safe)
 router.get("/conversations", isAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -111,7 +111,21 @@ router.get("/conversations", isAuth, async (req, res, next) => {
             }
           },
           lastMessage: { $first: "$$ROOT" },
-          messages: { $push: "$$ROOT" }
+          // Count unread messages inside the group using memory-safe conditional aggregation
+          unreadCount: {
+            $sum: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $eq: ["$receiver", userObjectId] },
+                    { $eq: ["$read", false] }
+                  ]
+                },
+                then: 1,
+                else: 0
+              }
+            }
+          }
         }
       },
       {
@@ -123,24 +137,6 @@ router.get("/conversations", isAuth, async (req, res, next) => {
         }
       },
       { $unwind: "$userDetails" },
-      {
-        $addFields: {
-          unreadCount: {
-            $size: {
-              $filter: {
-                input: "$messages",
-                as: "message",
-                cond: {
-                  $and: [
-                    { $eq: ["$$message.receiver", userObjectId] },
-                    { $eq: ["$$message.read", false] }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
       {
         $project: {
           _id: 1,
@@ -172,7 +168,7 @@ router.get("/conversations", isAuth, async (req, res, next) => {
   }
 });
 
-// Retrieve History with specific User & Mark messages as Read
+// Retrieve History with specific User (Paginated) & Mark messages as Read
 router.get("/:userId", isAuth, async (req, res, next) => {
   try {
     const currentUserId = req.user.id;
@@ -196,18 +192,25 @@ router.get("/:userId", isAuth, async (req, res, next) => {
       throw new AppError(access.message, 403);
     }
 
-    const messages = await Message.find({
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 40));
+    const skip = (page - 1) * limit;
+
+    // Fetch latest messages first, paginated
+    const rawMessages = await Message.find({
       $or: [
         { sender: currentUserId, receiver: otherUserId },
         { sender: otherUserId, receiver: currentUserId }
       ]
     })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 }) // Get newest messages first
+      .skip(skip)
+      .limit(limit)
       .populate("sender", "name email avatar")
       .populate("receiver", "name email avatar");
 
-    // Decrypt message contents for the client
-    const decryptedMessages = messages.map(msg => {
+    // Reverse messages back to chronological order (oldest to newest) and decrypt
+    const decryptedMessages = rawMessages.reverse().map(msg => {
       const m = msg.toObject();
       m.content = decrypt(m.content);
       return m;

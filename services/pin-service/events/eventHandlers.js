@@ -16,7 +16,8 @@ export const handleUserEvents = async (payload, routingKey) => {
           email: data.email,
           following: data.following || [],
           followers: data.followers || [],
-          isPrivate: Boolean(data.isPrivate)
+          isPrivate: Boolean(data.isPrivate),
+          isPremium: Boolean(data.isPremium)
         },
         { upsert: true, new: true }
       );
@@ -30,6 +31,7 @@ export const handleUserEvents = async (payload, routingKey) => {
       if (data.following) updateData.following = data.following;
       if (data.followers) updateData.followers = data.followers;
       if (typeof data.isPrivate === "boolean") updateData.isPrivate = data.isPrivate;
+      if (typeof data.isPremium === "boolean") updateData.isPremium = data.isPremium;
 
       if (Object.keys(updateData).length > 0) {
         await UserReplica.findOneAndUpdate({ _id: data.id }, updateData, {

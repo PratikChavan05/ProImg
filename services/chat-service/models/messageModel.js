@@ -45,6 +45,10 @@ const userReplicaSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    isPremium: {
+      type: Boolean,
+      default: false
+    },
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,

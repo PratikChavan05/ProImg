@@ -196,6 +196,55 @@ export const useAuthStore = create(
       followUser: async (id, callback) => {
         await get().toggleFollow(id);
         if (callback) callback();
+      },
+
+      createPaymentOrder: async () => {
+        try {
+          const res = await customAxios.post("/api/user/payment/order");
+          return res.data;
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Failed to initiate payment");
+          throw error;
+        }
+      },
+
+      verifyPayment: async (payload) => {
+        set({ btnLoading: true });
+        try {
+          const res = await customAxios.post("/api/user/payment/verify", payload);
+          toast.success(res.apiMessage || "Payment verified! Welcome to Premium!");
+          
+          // Set premium user status in store
+          set((state) => ({
+            user: { ...state.user, isPremium: true },
+            btnLoading: false
+          }));
+          
+          return res.data;
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Payment verification failed");
+          set({ btnLoading: false });
+          throw error;
+        }
+      },
+
+      cancelPremium: async () => {
+        set({ btnLoading: true });
+        try {
+          const res = await customAxios.post("/api/user/payment/cancel");
+          toast.success(res.apiMessage || "Premium status removed.");
+          
+          set((state) => ({
+            user: { ...state.user, isPremium: false },
+            btnLoading: false
+          }));
+          
+          return res.data;
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Failed to cancel premium");
+          set({ btnLoading: false });
+          throw error;
+        }
       }
     }),
     {

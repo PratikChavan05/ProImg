@@ -102,20 +102,41 @@ export const deletePin = async (req, res, next) => {
   }
 };
 
-// Get All Pins (discover)
+// Get All Pins (Discover Feed - Fully Optimized and Paginated)
 export const getAllPins = async (req, res, next) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+    const viewerId = req.user.id;
+    // Populate privacy settings locally to check permissions in-memory
     const pins = await Pin.find()
       .sort({ createdAt: -1 })
-      .populate("owner", "name email");
-
+      .skip(skip)
+      .limit(limit)
+      .populate("owner", "name email isPrivate followers");
     const visible = [];
     for (const pin of pins) {
-      const allowed = await canViewOwnerContent(req.user.id, ownerIdStr(pin.owner));
-      if (allowed) visible.push(pin);
+      const owner = pin.owner;
+      let allowed = true;
+      if (owner) {
+        const ownerId = (owner._id || owner).toString();
+        if (ownerId !== viewerId.toString() && owner.isPrivate) {
+          allowed = (owner.followers || []).some(
+            (f) => (f._id || f).toString() === viewerId.toString()
+          );
+        }
+      }
+      if (allowed) {
+        // Strip out the loaded followers array to prevent sending unnecessary payload down the wire
+        const plainPin = pin.toObject ? pin.toObject() : { ...pin };
+        if (plainPin.owner) {
+          delete plainPin.owner.followers;
+        }
+        visible.push(plainPin);
+      }
     }
-
-    return successResponse(res, visible);
+    return successResponse(res, visible, "Discover feed retrieved successfully");
   } catch (err) {
     next(err);
   }
@@ -124,14 +145,17 @@ export const getAllPins = async (req, res, next) => {
 // Following feed — pins from people you follow (+ your own)
 export const getFeedPins = async (req, res, next) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
     const replica = await UserReplica.findById(req.user.id);
     const followingIds = (replica?.following || []).map((id) => id.toString());
     const ownerIds = [req.user.id.toString(), ...followingIds];
-
     const pins = await Pin.find({ owner: { $in: ownerIds } })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate("owner", "name email");
-
     return successResponse(res, pins, "Following feed retrieved successfully");
   } catch (err) {
     next(err);
@@ -166,9 +190,14 @@ export const getPinsByUser = async (req, res, next) => {
     if (!allowed) {
       throw new AppError("This account is private", 403);
     }
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
 
     const pins = await Pin.find({ owner: ownerId })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate("owner", "name email");
 
     return successResponse(res, pins);
@@ -417,8 +446,14 @@ export const myLikes = async (req, res, next) => {
     if (!id) {
       throw new AppError("User ID parameter is required", 400);
     }
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
 
-    const pins = await Pin.find({ likes: id });
+    const pins = await Pin.find({ likes: id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     return successResponse(res, pins);
   } catch (err) {
     next(err);

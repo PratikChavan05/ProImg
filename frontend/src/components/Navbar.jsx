@@ -52,11 +52,20 @@ const Navbar = ({ user }) => {
             <PlusCircle size={18} />
           </Link>
           <Link to="/account" className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-paper-dark transition">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ocean-400 to-fresh-500 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-white shadow-soft">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold ring-2 shadow-soft ${
+              user?.isPremium
+                ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-amber-400"
+                : "ring-white bg-gradient-to-br from-ocean-400 to-fresh-500"
+            }`}>
               {user?.name?.slice(0, 1).toUpperCase() || "?"}
             </div>
-            <span className="hidden lg:block text-sm font-medium text-ink-soft max-w-[120px] truncate">
+            <span className="hidden lg:flex items-center gap-1.5 text-sm font-medium text-ink-soft max-w-[120px] truncate">
               {user?.name || "Profile"}
+              {user?.isPremium && (
+                <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              )}
             </span>
           </Link>
           <button

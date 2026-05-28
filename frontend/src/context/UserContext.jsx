@@ -60,6 +60,9 @@ export const UserData = () => {
     acceptFollowRequest: store.acceptFollowRequest,
     rejectFollowRequest: store.rejectFollowRequest,
     setIsAuth: store.setIsAuth,
-    setUser: store.setUser
+    setUser: store.setUser,
+    createPaymentOrder: store.createPaymentOrder,
+    verifyPayment: store.verifyPayment,
+    cancelPremium: store.cancelPremium
   };
 };

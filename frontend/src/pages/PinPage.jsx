@@ -442,12 +442,26 @@ const PinPage = ({ user }) => {
               </div>
 
               {pin.owner && (
-                <Link to={`/user/${pin.owner._id}`} className="flex items-center gap-3 p-4 rounded-xl bg-paper-100 mb-5 hover:bg-paper-200/80 transition">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-ocean-400 to-fresh-500 flex items-center justify-center text-white font-bold">
+                <Link to={`/user/${pin.owner._id}`} className="flex items-center gap-3 p-4 rounded-xl bg-paper-100 mb-5 hover:bg-paper-200/80 transition relative overflow-hidden">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold shrink-0 ${
+                    pin.owner.isPremium
+                      ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-2 ring-amber-400"
+                      : "bg-gradient-to-br from-ocean-400 to-fresh-500"
+                  }`}>
                     {pin.owner.name?.slice(0, 1).toUpperCase() || "?"}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-ink">{pin.owner.name || "Unknown"}</h3>
+                    <h3 className="font-semibold text-ink flex items-center gap-1.5">
+                      {pin.owner.name || "Unknown"}
+                      {pin.owner.isPremium && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 shadow-soft">
+                          <svg className="w-3 h-3 text-amber-600 shrink-0 fill-amber-600/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                          Pro
+                        </span>
+                      )}
+                    </h3>
                     <p className="text-sm text-ink-muted">
                       {Array.isArray(pin.owner.followers) ? pin.owner.followers.length : 0} followers
                     </p>

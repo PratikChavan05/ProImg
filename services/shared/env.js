@@ -47,7 +47,9 @@ function normalizeEnv() {
     "GOOGLE_CLIENT_SECRET",
     "Cloud_Name",
     "Cloud_Api",
-    "Cloud_Secret"
+    "Cloud_Secret",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET"
   ];
 
   for (const key of keys) {

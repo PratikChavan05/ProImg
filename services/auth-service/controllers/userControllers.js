@@ -29,7 +29,8 @@ const publishUserReplica = async (rabbitClient, correlationId, user) => {
       email: user.email,
       following: user.following || [],
       followers: user.followers || [],
-      isPrivate: Boolean(user.isPrivate)
+      isPrivate: Boolean(user.isPrivate),
+      isPremium: Boolean(user.isPremium)
     },
     correlationId
   );
@@ -634,65 +635,148 @@ export const followAndUnfollow = async (req, res, next) => {
   }
 };
 
-// Get User Connections (Followers & Following)
+// Get User Connections (Followers & Following - Scalable & Sliced)
 export const getUserFollowersAndFollowing = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id)
-      .populate("followers", "name email")
-      .populate("following", "name email");
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
+    const skip = (page - 1) * limit;
+
+    const targetUserId = req.params.id;
+    const viewerId = req.user.id;
+
+    const isSelf = idStr(targetUserId) === idStr(viewerId);
+    let canView = false;
+
+    if (isSelf) {
+      canView = true;
+    } else {
+      const targetUserMeta = await User.findOne({ _id: targetUserId }).select("isPrivate");
+      if (!targetUserMeta) {
+        throw new AppError("User not found", 404);
+      }
+      if (!targetUserMeta.isPrivate) {
+        canView = true;
+      } else {
+        const isFollower = await User.exists({
+          _id: targetUserId,
+          followers: viewerId
+        });
+        canView = Boolean(isFollower);
+      }
+    }
+
+    if (!canView) {
+      throw new AppError("This account is private", 403);
+    }
+
+    // Get total counts via high-performance size check
+    const counts = await User.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(targetUserId) } },
+      {
+        $project: {
+          followersCount: { $size: { $ifNull: ["$followers", []] } },
+          followingCount: { $size: { $ifNull: ["$following", []] } }
+        }
+      }
+    ]);
+    const followersTotal = counts[0]?.followersCount || 0;
+    const followingTotal = counts[0]?.followingCount || 0;
+
+    // Retrieve slices using $slice projection to protect memory
+    const user = await User.findById(targetUserId).select({
+      followers: { $slice: [skip, limit] },
+      following: { $slice: [skip, limit] }
+    });
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    if (!canViewFullProfile(user, req.user.id)) {
-      throw new AppError("This account is private", 403);
-    }
+    await user.populate([
+      { path: "followers", select: "name email" },
+      { path: "following", select: "name email" }
+    ]);
 
-    const viewerId = req.user.id;
     const enrichWithRelationship = async (list) => {
       const plain = (list || []).map((u) => (u.toObject ? u.toObject() : { ...u }));
       const ids = plain.map((u) => u._id).filter(Boolean);
       if (!ids.length) return [];
 
       const profiles = await User.find({ _id: { $in: ids } }).select(
-        "name email followers following followRequests"
+        "name email isPrivate followRequests.from"
       );
       const byId = new Map(profiles.map((p) => [idStr(p._id), p]));
 
       const viewer = await User.findById(viewerId).select("followers following");
+      const viewerFollowingSet = new Set((viewer?.following || []).map(id => id.toString()));
 
       return plain.map((u) => {
         const profile = byId.get(idStr(u._id)) || u;
+        const profileIdStr = idStr(profile._id);
+
+        let relationship = "none";
+        if (profileIdStr === viewerId.toString()) {
+          relationship = "self";
+        } else if (viewerFollowingSet.has(profileIdStr)) {
+          relationship = "following";
+        } else {
+          const hasRequested = (profile.followRequests || []).some(
+            (r) => idStr(r.from || r) === viewerId.toString()
+          );
+          if (hasRequested) {
+            relationship = "requested";
+          }
+        }
+
+        const viewerFollowsProfile = viewerFollowingSet.has(profileIdStr);
+        const profileFollowsViewer = (viewer?.followers || []).some(f => idStr(f) === profileIdStr);
+        const canMessage = relationship !== "self" && viewerFollowsProfile && profileFollowsViewer;
+
         return {
           _id: u._id,
           name: u.name,
           email: u.email,
-          relationship: getRelationship(profile, viewerId),
-          canMessage: viewer ? areMutualFriends(viewer, profile) : false
+          relationship,
+          canMessage
         };
       });
     };
 
     return successResponse(res, {
       followers: await enrichWithRelationship(user.followers),
-      following: await enrichWithRelationship(user.following)
+      following: await enrichWithRelationship(user.following),
+      pagination: {
+        page,
+        limit,
+        followersTotal,
+        followingTotal
+      }
     });
   } catch (err) {
     next(err);
   }
 };
 
-// Get All Users
+// Get All Users (Paginated & Backwards-Compatible)
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select("name email isPrivate followers followRequests following");
+    const hasPagination = req.query.page || req.query.limit;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
+    const skip = (page - 1) * limit;
     const viewerId = req.user.id;
-    const viewer = await User.findById(viewerId).select("followers following");
 
-    const list = users
-      .filter((u) => idStr(u._id) !== idStr(viewerId))
-      .map((u) => ({
+    if (hasPagination) {
+      const [users, total, viewer] = await Promise.all([
+        User.find({ _id: { $ne: viewerId } })
+          .select("name email isPrivate followers followRequests following")
+          .skip(skip)
+          .limit(limit),
+        User.countDocuments({ _id: { $ne: viewerId } }),
+        User.findById(viewerId).select("followers following")
+      ]);
+      const list = users.map((u) => ({
         _id: u._id,
         name: u.name,
         email: u.email,
@@ -700,8 +784,30 @@ export const getAllUsers = async (req, res, next) => {
         relationship: getRelationship(u, viewerId),
         canMessage: viewer ? areMutualFriends(viewer, u) : false
       }));
-
-    return successResponse(res, list);
+      return successResponse(res, {
+        users: list,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }, "Users retrieved successfully");
+    } else {
+      const users = await User.find({ _id: { $ne: viewerId } })
+        .select("name email isPrivate followers followRequests following")
+        .limit(500);
+      const viewer = await User.findById(viewerId).select("followers following");
+      const list = users.map((u) => ({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        isPrivate: Boolean(u.isPrivate),
+        relationship: getRelationship(u, viewerId),
+        canMessage: viewer ? areMutualFriends(viewer, u) : false
+      }));
+      return successResponse(res, list, "Users retrieved successfully");
+    }
   } catch (err) {
     next(err);
   }
@@ -710,7 +816,7 @@ export const getAllUsers = async (req, res, next) => {
 // Publish all users to RabbitMQ so pin/chat services sync replicas (run once after deploy)
 export const syncUserReplicas = async (req, res, next) => {
   try {
-    const users = await User.find().select("name email following followers isPrivate");
+    const users = await User.find().select("name email following followers isPrivate isPremium");
     for (const user of users) {
       await req.rabbitClient.publish(
         "user.registered",
@@ -720,7 +826,8 @@ export const syncUserReplicas = async (req, res, next) => {
           email: user.email,
           following: user.following || [],
           followers: user.followers || [],
-          isPrivate: Boolean(user.isPrivate)
+          isPrivate: Boolean(user.isPrivate),
+          isPremium: Boolean(user.isPremium)
         },
         req.correlationId
       );

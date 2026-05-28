@@ -61,6 +61,7 @@ export const formatUserForViewer = (userDoc, viewerId, viewerDoc = null) => {
     _id: user._id,
     name: user.name,
     isPrivate: Boolean(user.isPrivate),
+    isPremium: Boolean(user.isPremium),
     relationship,
     canViewContent,
     canMessage,

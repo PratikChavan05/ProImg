@@ -92,7 +92,11 @@ const AllUsersPopup = ({
       className="flex items-center p-4 rounded-xl border border-paper-200 bg-paper-50 hover:border-ocean-200 transition cursor-pointer"
       onClick={() => handleCardClick(user._id)}
     >
-      <div className="w-12 h-12 bg-gradient-to-br from-ocean-400 to-fresh-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0 relative ${
+        user.isPremium
+          ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-2 ring-amber-400"
+          : "bg-gradient-to-br from-ocean-400 to-fresh-500"
+      }`}>
         {user.profilePicture ? (
           <img 
             src={user.profilePicture} 
@@ -103,8 +107,15 @@ const AllUsersPopup = ({
           user.name?.charAt(0).toUpperCase() || <UserCircle size={16} />
         )}
       </div>
-      <div className="ml-4 flex-1">
-        <h3 className="font-medium text-ink">{user.name}</h3>
+      <div className="ml-4 flex-1 min-w-0">
+        <h3 className="font-medium text-ink flex items-center gap-1.5 truncate">
+          {user.name}
+          {user.isPremium && (
+            <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          )}
+        </h3>
       </div>
       {currentUser && currentUser._id !== user._id && (
         <div className="flex items-center">

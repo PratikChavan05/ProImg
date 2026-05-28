@@ -21,6 +21,7 @@ import {
   syncUserReplicas,
   uploadPublicKey
 } from "../controllers/userControllers.js";
+import { createOrder, verifyPayment, cancelPremium } from "../controllers/paymentController.js";
 import { generateAccessToken, generateRefreshToken } from "shared";
 import { getRabbitClient } from "../lib/rabbitHolder.js";
 
@@ -43,6 +44,9 @@ router.post("/follow-requests/:requesterId/accept", isAuth, acceptFollowRequest)
 router.post("/follow-requests/:requesterId/reject", isAuth, rejectFollowRequest);
 router.get("/get/:id", isAuth, getUserFollowersAndFollowing);
 router.post("/follow/:id", isAuth, followAndUnfollow);
+router.post("/payment/order", isAuth, createOrder);
+router.post("/payment/verify", isAuth, verifyPayment);
+router.post("/payment/cancel", isAuth, cancelPremium);
 router.get("/:id", isAuth, userProfile);
 
 // Google OAuth
