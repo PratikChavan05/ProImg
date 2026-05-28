@@ -28,11 +28,29 @@ export const createPin = async (req, res, next) => {
     let resourceType;
 
     if (file.mimetype.startsWith("image")) {
+      // Limit images to 10MB
+      const maxImageSize = 10 * 1024 * 1024;
+      if (file.size > maxImageSize) {
+        if (file.path) {
+          try { await fs.promises.unlink(file.path); } catch (e) {}
+        }
+        throw new AppError("Image size exceeds the 10MB limit.", 400);
+      }
+
       cloud = await cloudinary.v2.uploader.upload(file.path, {
         folder: "proimg/pins"
       });
       resourceType = "image";
     } else if (file.mimetype.startsWith("video")) {
+      // Limit videos to 50MB
+      const maxVideoSize = 50 * 1024 * 1024;
+      if (file.size > maxVideoSize) {
+        if (file.path) {
+          try { await fs.promises.unlink(file.path); } catch (e) {}
+        }
+        throw new AppError("Video size exceeds the 50MB limit.", 400);
+      }
+
       cloud = await cloudinary.v2.uploader.upload(file.path, {
         resource_type: "video",
         folder: "proimg/pins"
