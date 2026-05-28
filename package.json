@@ -18,8 +18,5 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
-  },
-  "dependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.60.4"
   }
 }
