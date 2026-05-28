@@ -84,7 +84,10 @@ export const createPin = async (req, res, next) => {
       entityType: "pin",
       id: newPin._id,
       title: newPin.title,
-      ownerId: newPin.owner
+      pin: newPin.pin,
+      media: newPin.media,
+      ownerId: newPin.owner,
+      createdAt: newPin.createdAt
     }, req.correlationId);
 
     return successResponse(res, newPin, "Pin created successfully", 201);
@@ -260,7 +263,10 @@ export const updatePin = async (req, res, next) => {
       entityType: "pin",
       id: pin._id,
       title: pin.title,
-      ownerId: pin.owner
+      pin: pin.pin,
+      media: pin.media,
+      ownerId: pin.owner,
+      createdAt: pin.createdAt
     }, req.correlationId);
 
     return successResponse(res, pin, "Pin updated successfully");

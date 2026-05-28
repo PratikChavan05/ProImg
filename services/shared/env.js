@@ -111,7 +111,8 @@ export function servicePort(serviceDir, fallback) {
     "auth-service": "AUTH_PORT",
     "pin-service": "PIN_PORT",
     "chat-service": "CHAT_PORT",
-    "notification-service": "NOTIFICATION_PORT"
+    "notification-service": "NOTIFICATION_PORT",
+    "search-service": "SEARCH_PORT"
   };
   const key = map[serviceDir];
   if (key && process.env[key]) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Home, PlusCircle, MessageCircle, Menu, X, Users } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
@@ -12,6 +12,7 @@ const navLink = ({ isActive }) =>
 
 const Navbar = ({ user }) => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/80">

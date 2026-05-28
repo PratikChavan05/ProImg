@@ -22,6 +22,7 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:5001"
 const PIN_SERVICE_URL = process.env.PIN_SERVICE_URL || "http://localhost:5002";
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || "http://localhost:5003";
 const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:5006";
+const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || "http://localhost:5007";
 
 // Security Configuration
 app.use(helmet({
@@ -89,7 +90,8 @@ app.get("/health", async (req, res) => {
     { name: "auth-service", url: `${AUTH_SERVICE_URL}/health` },
     { name: "pin-service", url: `${PIN_SERVICE_URL}/health` },
     { name: "chat-service", url: `${CHAT_SERVICE_URL}/health` },
-    { name: "notification-service", url: `${NOTIFICATION_SERVICE_URL}/health` }
+    { name: "notification-service", url: `${NOTIFICATION_SERVICE_URL}/health` },
+    { name: "search-service", url: `${SEARCH_SERVICE_URL}/health` }
   ];
 
   const status = { gateway: "healthy", services: {} };
@@ -176,6 +178,18 @@ app.use("/api/message", proxy(CHAT_SERVICE_URL, {
   },
   proxyReqPathResolver: (req) => {
     return `/api/message${req.url}`;
+  }
+}));
+
+// Search Service
+app.use("/api/search", proxy(SEARCH_SERVICE_URL, {
+  parseReqBody: true,
+  proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+    proxyReqOpts.headers["X-Correlation-ID"] = srcReq.correlationId;
+    return proxyReqOpts;
+  },
+  proxyReqPathResolver: (req) => {
+    return `/api/search${req.url}`;
   }
 }));
 
