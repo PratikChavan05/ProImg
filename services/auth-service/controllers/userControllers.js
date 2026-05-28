@@ -9,7 +9,8 @@ import {
   generateRefreshToken,
   AppError,
   successResponse,
-  publishSocialActivity
+  publishSocialActivity,
+  mongoose
 } from "shared";
 import {
   idStr,
