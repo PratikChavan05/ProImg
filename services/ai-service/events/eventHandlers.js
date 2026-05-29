@@ -25,6 +25,13 @@ export const handlePinEvent = async (payload, routingKey) => {
 
   try {
     if (routingKey === "entity.created") {
+      // If the incoming pin already has tags populated, it was pre-enriched (e.g. via seeding script)
+      // and already indexed in Elasticsearch. Skip to prevent duplicate Gemini API calls and rate-limiting.
+      if (Array.isArray(pinData.tags) && pinData.tags.length > 0) {
+        logger.info(`Pin ${pinId} is already AI-enriched in payload. Skipping duplicate background processing.`);
+        return;
+      }
+
       logger.info(`Processing entity.created for pin ${pinId}...`);
 
       let tags = [];
