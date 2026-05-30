@@ -613,7 +613,7 @@ const PinPage = ({ user }) => {
           ) : (
             <div className="py-12 text-center text-ink-muted bg-paper-100 rounded-2xl border border-dashed border-paper-300">
               <p className="font-medium text-ink">No visual recommendations available</p>
-              <p className="text-sm mt-1 text-ink-faint">Try creating more pins or wait for Gemini to finish analyzing media.</p>
+              <p className="text-sm mt-1 text-ink-faint">Try creating more pins.</p>
             </div>
           )}
         </div>
