@@ -9,20 +9,31 @@ let initialized = false;
 
 const initTransporter = () => {
   if (initialized) return;
-  useMock = !process.env.MY_GMAIL || !process.env.MY_PASS;
-  if (!useMock) {
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      secure: true,
-      auth: {
-        user: process.env.MY_GMAIL,
-        pass: process.env.MY_PASS
-      }
-    });
-    logger.info("SMTP transporter configured.");  
+
+  if (process.env.Isrender) {
+    useMock = !process.env.RESEND_API_KEY;
+    if (!useMock) {
+      logger.info("Render environment detected. Using Resend API for emails.");
+    } else {
+      logger.warn("Render environment detected, but RESEND_API_KEY is missing — emails log to stdout (mock mode).");
+    }
   } else {
-    logger.warn("Gmail credentials missing — emails log to stdout (mock mode).");
+    useMock = !process.env.MY_GMAIL || !process.env.MY_PASS;
+    if (!useMock) {
+      transporter = nodemailer.createTransport({
+        service: "gmail",
+        secure: true,
+        auth: {
+          user: process.env.MY_GMAIL,
+          pass: process.env.MY_PASS
+        }
+      });
+      logger.info("SMTP transporter configured.");
+    } else {
+      logger.warn("Gmail credentials missing — emails log to stdout (mock mode).");
+    }
   }
+
   initialized = true;
 };
 
@@ -48,13 +59,38 @@ ${text}
     return;
   }
 
-  await transporter.sendMail({
-    from: process.env.MY_GMAIL,
-    to: email,
-    subject,
-    text
-  });
-  logger.info(`Email sent to ${email}`);
+  if (process.env.Isrender) {
+    const fromEmail = process.env.RESEND_FROM || "onboarding@resend.dev";
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: email,
+        subject,
+        text
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`Resend API error: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to send email via Resend API: ${response.statusText}`);
+    }
+
+    logger.info(`Email sent via Resend to ${email}`);
+  } else {
+    await transporter.sendMail({
+      from: process.env.MY_GMAIL,
+      to: email,
+      subject,
+      text
+    });
+    logger.info(`Email sent to ${email}`);
+  }
 };
 
 export const isEmailMockMode = () => {
