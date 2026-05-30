@@ -29,22 +29,22 @@ const App = () => {
       ) : (
         <BrowserRouter>
           
-          {isAuth && <Navbar user={user} />}
+          <Navbar user={user} />
           {isAuth && <BottomNav />}
           <Routes>
-            <Route path="/" element={isAuth ? <Home /> : <Login />} />
+            <Route path="/" element={<Home />} />
             <Route
               path="/account"
               element={isAuth ? <Account user={user} /> : <Login />}
             />
             <Route
               path="/user/:id"
-              element={isAuth ? <UserProfile user={user} /> : <Login />}
+              element={<UserProfile user={user} />}
             />
             <Route path="/create" element={isAuth ? <Create /> : <Login />} />
             <Route
               path="/pin/:id"
-              element={isAuth ? <PinPage user={user} /> : <Login />}
+              element={<PinPage user={user} />}
             />
             <Route path="/login" element={isAuth ? <Home /> : <Login />} />
             <Route path="/verify/:token" element={isAuth ? <Home /> : <OtpVerify/>} />

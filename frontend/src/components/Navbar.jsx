@@ -30,53 +30,68 @@ const Navbar = ({ user }) => {
           <NavLink to="/" end className={navLink}>
             <Home size={18} /> Home
           </NavLink>
-          <NavLink to="/create" className={navLink}>
-            <PlusCircle size={18} /> Create
-          </NavLink>
-          <NavLink to="/messages" className={navLink}>
-            <MessageCircle size={18} /> Messages
-          </NavLink>
           {user?._id && (
-            <NavLink to={`/get/${user._id}`} className={navLink}>
-              <Users size={18} /> Network
-            </NavLink>
+            <>
+              <NavLink to="/create" className={navLink}>
+                <PlusCircle size={18} /> Create
+              </NavLink>
+              <NavLink to="/messages" className={navLink}>
+                <MessageCircle size={18} /> Messages
+              </NavLink>
+              <NavLink to={`/get/${user._id}`} className={navLink}>
+                <Users size={18} /> Network
+              </NavLink>
+            </>
           )}
         </nav>
 
         <div className="flex items-center gap-2">
-          <NotificationBell />
-          <Link
-            to="/create"
-            className="md:hidden btn-primary !py-2 !px-3 !text-sm"
-            aria-label="Create pin"
-          >
-            <PlusCircle size={18} />
-          </Link>
-          <Link to="/account" className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-paper-dark transition">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold ring-2 shadow-soft ${
-              user?.isPremium
-                ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-amber-400"
-                : "ring-white bg-gradient-to-br from-ocean-400 to-fresh-500"
-            }`}>
-              {user?.name?.slice(0, 1).toUpperCase() || "?"}
+          {user?._id ? (
+            <>
+              <NotificationBell />
+              <Link
+                to="/create"
+                className="md:hidden btn-primary !py-2 !px-3 !text-sm"
+                aria-label="Create pin"
+              >
+                <PlusCircle size={18} />
+              </Link>
+              <Link to="/account" className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-paper-dark transition">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold ring-2 shadow-soft ${
+                  user?.isPremium
+                    ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 ring-amber-400"
+                    : "ring-white bg-gradient-to-br from-ocean-400 to-fresh-500"
+                }`}>
+                  {user?.name?.slice(0, 1).toUpperCase() || "?"}
+                </div>
+                <span className="hidden lg:flex items-center gap-1.5 text-sm font-medium text-ink-soft max-w-[120px] truncate">
+                  {user?.name || "Profile"}
+                  {user?.isPremium && (
+                    <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  )}
+                </span>
+              </Link>
+              <button
+                type="button"
+                className="md:hidden p-2 rounded-xl text-ink-muted hover:bg-paper-dark"
+                onClick={() => setOpen(!open)}
+                aria-label="Menu"
+              >
+                {open ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link to="/login" className="px-3.5 py-2 text-sm font-semibold text-ink-soft hover:text-ink transition">
+                Login
+              </Link>
+              <Link to="/register" className="btn-primary !py-2 !px-4 !text-sm">
+                Sign Up
+              </Link>
             </div>
-            <span className="hidden lg:flex items-center gap-1.5 text-sm font-medium text-ink-soft max-w-[120px] truncate">
-              {user?.name || "Profile"}
-              {user?.isPremium && (
-                <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              )}
-            </span>
-          </Link>
-          <button
-            type="button"
-            className="md:hidden p-2 rounded-xl text-ink-muted hover:bg-paper-dark"
-            onClick={() => setOpen(!open)}
-            aria-label="Menu"
-          >
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          )}
         </div>
       </div>
 

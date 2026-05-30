@@ -3,6 +3,7 @@ export { createLogger } from "./logger.js";
 export { connectDatabase, mongoose } from "./database.js";
 export {
   isAuth,
+  optionalAuth,
   generateAccessToken,
   generateRefreshToken,
   hashPassword,

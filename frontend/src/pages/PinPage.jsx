@@ -54,24 +54,14 @@ const PinPage = ({ user }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [relatedPins, setRelatedPins] = useState([]);
 
-  if (!user || !user._id) {
-    return (
-      <div className="page-shell flex flex-col items-center justify-center min-h-[50vh]">
-        <AlertCircle size={32} className="mb-4 text-amber-500" />
-        <p className="text-ink font-medium text-xl">Please log in to view this pin</p>
-        <button type="button" onClick={() => navigate("/login")} className="btn-primary mt-6 flex items-center gap-2">
-          <UserCircle size={20} />
-          Go to login
-        </button>
-      </div>
-    );
-  }
 
   useEffect(() => {
-    if (pin && Array.isArray(pin.likes)) {
+    if (pin && Array.isArray(pin.likes) && user?._id) {
       setLiked(pin.likes.includes(user._id));
+    } else {
+      setLiked(false);
     }
-  }, [pin, user._id]);
+  }, [pin, user?._id]);
 
   useEffect(() => {
     if (params.id) {
@@ -166,6 +156,10 @@ const PinPage = ({ user }) => {
   };
 
   const likeHandler = () => {
+    if (!user?._id) {
+      navigate("/login");
+      return;
+    }
     try {
       likePin(pin._id);
       setLiked(!liked);
@@ -175,6 +169,10 @@ const PinPage = ({ user }) => {
   };
 
   const bookmarkHandler = () => {
+    if (!user?._id) {
+      navigate("/login");
+      return;
+    }
     setBookmarked(!bookmarked);
     const message = bookmarked
       ? "Removed from your saved collection"
@@ -509,31 +507,40 @@ const PinPage = ({ user }) => {
                 </Link>
               )}
 
-              <form className="mb-5" onSubmit={submitHandler}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-ocean-400 to-fresh-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                    {user?.name?.slice(0, 1).toUpperCase() || "U"}
+              {user?._id ? (
+                <form className="mb-5" onSubmit={submitHandler}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-ocean-400 to-fresh-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                      {user?.name?.slice(0, 1).toUpperCase() || "U"}
+                    </div>
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        placeholder="Add a comment…"
+                        className="input-field !rounded-full !pr-12"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${
+                          comment.trim() ? "text-ocean-600 hover:bg-ocean-50" : "text-ink-faint cursor-not-allowed"
+                        }`}
+                        disabled={!comment.trim()}
+                      >
+                        <Send size={18} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder="Add a comment…"
-                      className="input-field !rounded-full !pr-12"
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                    />
-                    <button
-                      type="submit"
-                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${
-                        comment.trim() ? "text-ocean-600 hover:bg-ocean-50" : "text-ink-faint cursor-not-allowed"
-                      }`}
-                      disabled={!comment.trim()}
-                    >
-                      <Send size={18} />
-                    </button>
-                  </div>
+                </form>
+              ) : (
+                <div className="mb-5 p-4 rounded-xl bg-paper-100 border border-paper-200 text-center">
+                  <p className="text-sm text-ink-muted mb-2">Want to join the conversation?</p>
+                  <Link to="/login" className="btn-primary !py-1.5 !px-4 !text-xs inline-flex items-center gap-1.5">
+                    <UserCircle size={14} /> Log in to comment
+                  </Link>
                 </div>
-              </form>
+              )}
 
               <div className="rounded-xl border border-paper-200 p-4 flex-1 min-h-0">
                 <div className="flex items-center justify-between mb-4 gap-2">
@@ -566,7 +573,7 @@ const PinPage = ({ user }) => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium text-ink text-sm">{c.name || "Anonymous"}</h4>
-                            {c.user === user._id && (
+                            {c.user === user?._id && (
                               <button
                                 type="button"
                                 onClick={() => deleteCommentHandler(c._id)}

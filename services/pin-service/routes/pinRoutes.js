@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { isAuth } from "shared";
+import { isAuth, optionalAuth } from "shared";
 import {
   commentOnPin,
   countViews,
@@ -41,10 +41,10 @@ const storage = multer.diskStorage({
 const uploadFile = multer({ storage }).single("file");
 
 router.post("/new", isAuth, uploadFile, createPin);
-router.get("/all", isAuth, getAllPins);
+router.get("/all", optionalAuth, getAllPins);
 router.get("/feed", isAuth, getFeedPins);
-router.get("/user/:ownerId", isAuth, getPinsByUser);
-router.get("/:id", isAuth, getSinglePin);
+router.get("/user/:ownerId", optionalAuth, getPinsByUser);
+router.get("/:id", optionalAuth, getSinglePin);
 router.put("/:id", isAuth, updatePin);
 router.delete("/:id", isAuth, deletePin);
 router.post("/comment/:id", isAuth, commentOnPin);
@@ -54,6 +54,6 @@ router.get("/likes/:id", isAuth, getLikes);
 router.get("/liked/:id", isAuth, myLikes);
 router.post("/view", isAuth, countViews);
 router.get("/getView/:id", isAuth, getViews);
-router.get("/:id/similar", isAuth, getSimilarPins);
+router.get("/:id/similar", optionalAuth, getSimilarPins);
 
 export default router;

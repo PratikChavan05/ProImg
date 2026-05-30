@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PinData } from "../context/PinContext";
+import { UserData } from "../context/UserContext";
 import { GridLoader } from "react-spinners";
 import PinCard from "../components/PinCard";
 import customAxios from "../config/axios";
 import { Compass, Users, Image, Film, Search as SearchIcon, X } from "lucide-react";
 
 const Home = () => {
+  const { isAuth } = UserData();
   const { fetchPins, pins, loading: feedLoading, feedMode } = PinData();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -158,15 +160,17 @@ const Home = () => {
               <Compass size={16} className="inline mr-1.5 -mt-0.5" />
               Discover
             </button>
-            <button
-              key="following"
-              type="button"
-              onClick={() => handleFeedModeChange("following")}
-              className={!query && feedMode === "following" ? "chip-active" : "chip-inactive"}
-            >
-              <Users size={16} className="inline mr-1.5 -mt-0.5" />
-              Following
-            </button>
+            {isAuth && (
+              <button
+                key="following"
+                type="button"
+                onClick={() => handleFeedModeChange("following")}
+                className={!query && feedMode === "following" ? "chip-active" : "chip-inactive"}
+              >
+                <Users size={16} className="inline mr-1.5 -mt-0.5" />
+                Following
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 mt-3">

@@ -86,9 +86,18 @@ customAxios.interceptors.response.use(
         isRefreshing = false;
         processQueue(refreshError, null);
         
-        // Clear local storage and force redirect to login on refresh failure
+        // Clear local storage on refresh failure
         localStorage.removeItem("proimg-auth-storage");
-        if (window.location.pathname !== "/login") {
+        
+        const publicRoutes = ["/", "/login", "/register", "/forgot"];
+        const isPublicRoute =
+          publicRoutes.includes(window.location.pathname) ||
+          window.location.pathname.startsWith("/pin/") ||
+          window.location.pathname.startsWith("/user/") ||
+          window.location.pathname.startsWith("/reset-password/") ||
+          window.location.pathname.startsWith("/verify/");
+
+        if (!isPublicRoute) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);

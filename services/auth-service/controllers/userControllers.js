@@ -375,8 +375,9 @@ export const userProfile = async (req, res, next) => {
     if (!user) {
       throw new AppError("User not found", 404);
     }
-    const viewer = await User.findById(req.user.id).select("followers following");
-    const payload = formatUserForViewer(user, req.user.id, viewer);
+    const viewerId = req.user?.id;
+    const viewer = viewerId ? await User.findById(viewerId).select("followers following") : null;
+    const payload = formatUserForViewer(user, viewerId, viewer);
     return successResponse(res, payload);
   } catch (err) {
     next(err);

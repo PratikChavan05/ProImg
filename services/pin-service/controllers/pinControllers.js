@@ -142,7 +142,7 @@ export const getAllPins = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
-    const viewerId = req.user.id;
+    const viewerId = req.user?.id;
     // Populate privacy settings locally to check permissions in-memory
     const pins = await Pin.find()
       .sort({ createdAt: -1 })
@@ -155,8 +155,9 @@ export const getAllPins = async (req, res, next) => {
       let allowed = true;
       if (owner) {
         const ownerId = (owner._id || owner).toString();
-        if (ownerId !== viewerId.toString() && owner.isPrivate) {
-          allowed = (owner.followers || []).some(
+        const isSelf = viewerId && ownerId === viewerId.toString();
+        if (!isSelf && owner.isPrivate) {
+          allowed = viewerId && (owner.followers || []).some(
             (f) => (f._id || f).toString() === viewerId.toString()
           );
         }
@@ -205,7 +206,7 @@ export const getSinglePin = async (req, res, next) => {
       throw new AppError("Pin not found", 404);
     }
 
-    const allowed = await canViewOwnerContent(req.user.id, ownerIdStr(pin.owner));
+    const allowed = await canViewOwnerContent(req.user?.id, ownerIdStr(pin.owner));
     if (!allowed) {
       throw new AppError("This pin is from a private account", 403);
     }
@@ -220,7 +221,7 @@ export const getSinglePin = async (req, res, next) => {
 export const getPinsByUser = async (req, res, next) => {
   try {
     const ownerId = req.params.ownerId;
-    const allowed = await canViewOwnerContent(req.user.id, ownerId);
+    const allowed = await canViewOwnerContent(req.user?.id, ownerId);
     if (!allowed) {
       throw new AppError("This account is private", 403);
     }

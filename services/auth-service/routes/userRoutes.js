@@ -1,6 +1,6 @@
 import express from "express";
 import passport from "passport";
-import { isAuth } from "shared";
+import { isAuth, optionalAuth } from "shared";
 import {
   registerWithOtp,
   verifyOtpAndRegister,
@@ -47,7 +47,7 @@ router.post("/follow/:id", isAuth, followAndUnfollow);
 router.post("/payment/order", isAuth, createOrder);
 router.post("/payment/verify", isAuth, verifyPayment);
 router.post("/payment/cancel", isAuth, cancelPremium);
-router.get("/:id", isAuth, userProfile);
+router.get("/:id", optionalAuth, userProfile);
 
 // Google OAuth
 router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));

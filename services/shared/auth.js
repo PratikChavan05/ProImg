@@ -35,6 +35,36 @@ export const isAuth = (req, res, next) => {
   }
 };
 
+// Optional JWT Authentication Middleware
+export const optionalAuth = (req, res, next) => {
+  try {
+    const token = req.cookies.token || (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+    
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SEC || "secret_key");
+    if (!decoded) {
+      return next();
+    }
+
+    // Attach basic decoded user info to the request
+    req.user = {
+      _id: decoded.id,
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name
+    };
+
+    next();
+  } catch (error) {
+    // Gracefully proceed as guest if token is invalid or expired
+    next();
+  }
+};
+
+
 // Generate Access Token (short-lived for production security)
 export const generateAccessToken = (user) => {
   return jwt.sign(
